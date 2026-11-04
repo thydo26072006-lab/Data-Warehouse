@@ -7,7 +7,7 @@ import pandas as pd
 import psycopg
 import streamlit as st
 
-from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap
+from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
 st.set_page_config(page_title="Superstore · Phân tích & dự báo", layout="wide")
 st.markdown("""<style>
@@ -98,6 +98,25 @@ def overview(filters, summary):
     right.metric("Tăng trưởng tháng cuối so cùng kỳ", "—" if pd.isna(latest.yoy_growth) else number(latest.yoy_growth * 100, 2) + "%")
     st.caption("Tăng trưởng chỉ so với tháng có trong khoảng đã chọn; dấu — là thiếu kỳ so sánh hoặc doanh thu kỳ trước bằng 0.")
     table(monthly, "monthly_growth")
+    st.subheader("ROLLUP doanh thu theo thời gian")
+    period = st.radio("Mức tổng hợp", ["Năm", "Quý", "Tháng"], horizontal=True, key="rollup_period")
+    rolled = olap("03_time_rollup", filters)
+    level = {"Năm": 3, "Quý": 1, "Tháng": 0}[period]
+    rolled = rolled.loc[rolled.grouping_level.eq(level)].copy()
+    if not rolled.empty:
+        rolled["period_label"] = rolled.calendar_year.astype(int).astype(str)
+        if period != "Năm":
+            rolled["period_label"] += "-Q" + rolled.calendar_quarter.astype(int).astype(str)
+        if period == "Tháng":
+            rolled["period_label"] = (rolled.calendar_year.astype(int).astype(str) + "-"
+                                      + rolled.calendar_month.astype(int).astype(str).str.zfill(2))
+        st.altair_chart(alt.Chart(rolled).mark_bar(color=PINK).encode(
+            x=alt.X("period_label:N", sort=None, title=period),
+            y=alt.Y("sales:Q", title="Doanh thu"),
+            tooltip=["period_label:N", alt.Tooltip("sales:Q", format=",.2f"),
+                     alt.Tooltip("profit:Q", format=",.2f")]
+        ).properties(height=270), width="stretch")
+    st.caption("Các mức tổng hợp lấy từ truy vấn SQL ROLLUP; không cộng dòng tổng với dòng chi tiết.")
 
 
 def products(filters):
@@ -112,6 +131,37 @@ def products(filters):
         st.subheader("Theo quốc gia · Top 15")
         countries = geo.groupby("country", as_index=False)[["sales", "profit"]].sum()
         bar(countries, "country", measure)
+    st.subheader("Drill-down: ngành hàng → phân nhóm → sản phẩm")
+    details = product.loc[product.sub_category.notna() & product.category.notna()].copy()
+    categories = sorted(details.category.unique().tolist())
+    chosen_category = st.selectbox("Chọn ngành hàng để đi sâu", categories, key="drill_category")
+    subcategories = sorted(details.loc[details.category.eq(chosen_category), "sub_category"].unique().tolist())
+    chosen_sub = st.selectbox("Chọn phân nhóm", subcategories, key="drill_subcategory")
+    items = product_details(filters, chosen_category, chosen_sub)
+    st.caption("Mỗi sản phẩm được xác định bằng cặp product_id + product_name; kết quả chịu tác động của bộ lọc OLAP.")
+    if items.empty:
+        st.info("Không tìm thấy sản phẩm trong phạm vi đã chọn.")
+    else:
+        bar(items, "product_name", measure, limit=10)
+        table(items, "product_level_details", "Danh sách sản phẩm trong phân nhóm")
+    st.subheader("Heatmap biên lợi nhuận: ngành hàng × thị trường")
+    cube = olap("09_market_category_cube", filters)
+    heat = cube.loc[cube.grouping_level.eq(0) & cube.sales.gt(0)].copy()
+    if heat.empty:
+        st.info("Không có dữ liệu để vẽ heatmap.")
+    else:
+        heat["margin_pct"] = heat.profit / heat.sales * 100
+        heatmap = alt.Chart(heat).mark_rect().encode(
+            x=alt.X("market:N", title="Thị trường"),
+            y=alt.Y("category:N", title="Ngành hàng"),
+            color=alt.Color("margin_pct:Q", title="Biên lợi nhuận (%)",
+                            scale=alt.Scale(scheme="redblue", domainMid=0)),
+            tooltip=["market:N", "category:N", alt.Tooltip("sales:Q", format=",.2f"),
+                     alt.Tooltip("profit:Q", format=",.2f"),
+                     alt.Tooltip("margin_pct:Q", format=".2f", title="Biên lợi nhuận (%)")]
+        ).properties(height=235)
+        st.altair_chart(heatmap, width="stretch")
+        st.caption("Mỗi ô = SUM(profit) / SUM(sales) × 100%; chỉ dùng các dòng chi tiết CUBE (grouping_level = 0).")
     table(product, "product_drilldown")
     table(geo, "geography", "Chi tiết thị trường và địa lý")
     st.subheader("Sản phẩm cần theo dõi")
@@ -225,10 +275,48 @@ def forecasts():
     st.caption("Dấu hình thoi là dự báo tháng 01/2015, chưa có số thực tế. Các dự báo năm 2014 được thực hiện cuốn chiếu, trước một tháng.")
     table(view[["category", "month", "model", "predicted_sales", "same_month_last_year", "predicted_yoy_pct"]], "next_month_forecast", "Chi tiết dự báo tháng tiếp theo")
     table(compared[["role", "model", "mae", "rmse", "wape_pct"]], "forecast_evaluation", "Đánh giá mô hình và đối chứng")
+    st.subheader("Chẩn đoán sai số dự báo năm 2014")
+    # Use one actual observation per month and the selected one-step-ahead forecast.
+    selected_rows = evaluated.loc[evaluated.role.eq("selected")]
+    diagnostic = selected_rows.groupby("month", as_index=False)[["actual", "predicted"]].sum()
+    full_history = historic.groupby("month", as_index=False).sales.sum().sort_values("month")
+    full_history["previous_actual"] = full_history.sales.shift(1)
+    diagnostic = diagnostic.merge(full_history[["month", "previous_actual"]], on="month", how="left")
+    diagnostic["error"] = diagnostic.actual - diagnostic.predicted
+    diagnostic["abs_error"] = diagnostic.error.abs()
+    diagnostic["down_month"] = diagnostic.actual.lt(diagnostic.previous_actual)
+    down = diagnostic.loc[diagnostic.down_month]
+    valid_direction = diagnostic.loc[diagnostic.previous_actual.notna()]
+    correct = ((valid_direction.actual - valid_direction.previous_actual) *
+               (valid_direction.predicted - valid_direction.previous_actual) > 0).sum()
+    wape_down = 100 * down.abs_error.sum() / down.actual.abs().sum() if not down.empty and down.actual.abs().sum() else float("nan")
+    a, b, c = st.columns(3)
+    a.metric("WAPE tháng doanh thu giảm", number(wape_down, 2) + "%" if pd.notna(wape_down) else "—")
+    b.metric("Tháng giảm trong tập kiểm tra", str(len(down)) + "/12")
+    c.metric("Dự báo đúng chiều thay đổi", f"{correct}/{len(valid_direction)}" if len(valid_direction) else "—")
+    st.altair_chart(alt.Chart(diagnostic).mark_bar().encode(
+        x=alt.X("month:T", title="Tháng kiểm tra", axis=alt.Axis(format="%m/%Y")),
+        y=alt.Y("error:Q", title="Sai số thực tế − dự báo"),
+        color=alt.condition("datum.down_month", alt.value("#a50040"), alt.value("#8d9aa8")),
+        tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("actual:Q", format=",.2f"),
+                 alt.Tooltip("predicted:Q", format=",.2f"), alt.Tooltip("error:Q", format=",.2f"),
+                 alt.Tooltip("down_month:N", title="Doanh thu giảm")]
+    ).properties(height=270), width="stretch")
+    st.caption("Màu đậm đánh dấu tháng doanh thu thực tế giảm so với tháng liền trước. "
+               "Sai số âm nghĩa là mô hình dự báo cao hơn thực tế. Các tháng giảm được xác định sau khi có kết quả thực tế, chỉ để đánh giá mô hình.")
+    largest = diagnostic.nlargest(5, "abs_error").copy()
+    largest["month"] = largest.month.dt.strftime("%m/%Y")
+    st.dataframe(largest[["month", "actual", "predicted", "error", "abs_error", "down_month"]]
+                 .rename(columns={"month": "Tháng", "actual": "Thực tế", "predicted": "Dự báo",
+                                  "error": "Sai số", "abs_error": "Sai số tuyệt đối",
+                                  "down_month": "Tháng giảm"}), hide_index=True, width="stretch")
+    st.caption("WAPE tháng giảm là chỉ số chẩn đoán bổ sung, không thay thế WAPE kiểm tra toàn kỳ.")
     with st.expander("Mô hình được xây dựng và đánh giá thế nào?"):
         st.write("Huấn luyện ban đầu: 2011–2012. Chọn mô hình trên 2013, kiểm tra trên 2014. "
-                 "Cả ba nhóm chọn Holt–Winters với xu hướng cộng và mùa vụ 12 tháng. "
                  "Mỗi mốc chỉ dùng dữ liệu trước tháng cần dự báo. Sau đánh giá, huấn luyện lại đến 12/2014 để dự báo 01/2015.")
+        st.write("Mô hình đã chọn theo ngành hàng: " + "; ".join(
+            str(row.category) + ": " + str(row.model) for row in future.itertuples(index=False)) + ".")
+        st.caption("Tên mô hình được đọc từ kết quả thực nghiệm, không cố định trong giao diện.")
         st.write("WAPE càng thấp càng tốt; không phải độ chính xác phân loại. Chỉ có bốn năm lịch sử, "
                  "chưa ước lượng khoảng dự báo. Dự báo doanh thu hỗ trợ lập mục tiêu, chưa xác định được lượng nhập hàng.")
         st.caption("Thời điểm tạo kết quả: " + manifest["created_at"])
