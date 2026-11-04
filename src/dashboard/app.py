@@ -163,6 +163,25 @@ def products(filters):
         st.altair_chart(heatmap, width="stretch")
         st.caption("Mỗi ô = SUM(profit) / SUM(sales) × 100%; chỉ dùng các dòng chi tiết CUBE (grouping_level = 0).")
     table(product, "product_drilldown")
+    st.subheader("10 quốc gia có doanh thu và lợi nhuận thấp nhất")
+    st.caption("Doanh thu thấp phản ánh quy mô bán hàng nhỏ, không đồng nghĩa với thua lỗ. "
+               "Lợi nhuận thấp nhất được xếp theo giá trị tăng dần, bao gồm cả lợi nhuận âm.")
+    bottom_sales = countries.nsmallest(10, "sales")
+    bottom_profit = countries.nsmallest(10, "profit")
+    left_low, right_low = st.columns(2)
+    with left_low:
+        st.markdown("**Bottom 10 · Doanh thu**")
+        bar(bottom_sales, "country", "sales", limit=10, ascending=True)
+    with right_low:
+        st.markdown("**Bottom 10 · Lợi nhuận**")
+        bar(bottom_profit, "country", "profit", limit=10, ascending=True)
+    with st.expander("Bảng số liệu Bottom 10 quốc gia"):
+        st.write("Doanh thu thấp nhất")
+        st.dataframe(bottom_sales[["country", "sales", "profit"]].rename(columns=NAMES),
+                     hide_index=True, width="stretch")
+        st.write("Lợi nhuận thấp nhất")
+        st.dataframe(bottom_profit[["country", "sales", "profit"]].rename(columns=NAMES),
+                     hide_index=True, width="stretch")
     table(geo, "geography", "Chi tiết thị trường và địa lý")
     st.subheader("Sản phẩm cần theo dõi")
     losses = olap("11_loss_making_products", filters)
