@@ -65,6 +65,17 @@ Các bài test mới **chưa được xác nhận PASS** trên máy người nh�
 - File thay đổi: `src/dashboard/app.py`, `src/dashboard/insights.py`, `src/dashboard/check_dashboard.py`. Các thư viện Plotly đã nằm trong `src/dashboard/requirements.txt`.
 - Chưa có xác nhận kết quả kiểm thử tích hợp trên PostgreSQL cho commit này: chạy `py -u src/dashboard/check_dashboard.py` ở terminal CMD đã cấu hình `SUPERSTORE_DATABASE_URL` và `PGPASSFILE`.
 
+## Cập nhật 04/11/2026 — Donut có % và chatbot dữ liệu nội bộ
+
+- Tất cả biểu đồ tròn/donut trong Streamlit sử dụng chung hàm `donut_with_percent` với nhãn **phần trăm hiển thị bên ngoài lát cắt**; bao gồm cơ cấu doanh thu theo ngành hàng, doanh thu theo phân khúc ở trang Tổng quan và cơ cấu số khách ở trang Khách hàng.
+- Trang **Hỏi đáp dữ liệu** cung cấp chatbot quy tắc (không dùng LLM, không yêu cầu API key, không phát sinh chi phí token), dùng các truy vấn OLAP và truy vấn phân tích **chỉ đọc** từ PostgreSQL.
+- Chatbot hỗ trợ câu hỏi tiếng Việt có/không dấu về tổng doanh thu, lợi nhuận, năm 2011–2014, ngành hàng, thị trường, xếp hạng quốc gia, phân khúc/khách quay lại, tỷ lệ lỗ theo chiết khấu và hệ số tương quan. Câu ngoài phạm vi hoặc không khớp mẫu được trả lời bằng thông báo giới hạn rõ ràng.
+- Chatbot **không phải mô hình ngôn ngữ tự do**: không tự xây dựng SQL từ câu hỏi, không trả lời mọi biến thể câu hỏi hoặc phân tích ngoài dữ liệu.
+- Bộ lọc tháng, thị trường và ngành hàng áp dụng lên câu trả lời; khi đổi phạm vi phân tích, lịch sử hội thoại hiển thị được xóa để tránh hiểu nhầm kết quả cũ.
+- Mã mới: `src/dashboard/chatbot.py`; đồng thời cập nhật `src/dashboard/app.py`, `src/dashboard/check_dashboard.py`.
+- Chưa chạy lại kiểm thử trên PostgreSQL thực của người nhận. Cần chạy `py -u src/dashboard/check_dashboard.py` (bài kiểm thử mới cho chatbot), đồng thời kiểm tra trực quan nhãn % trên trình duyệt.
+- Nếu dùng ZIP hoặc đồng bộ thủ công, **phải thêm cả chatbot.py** vào thư mục `src/dashboard` trước khi chạy Streamlit. Không cần cài thêm dependency.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
