@@ -14,6 +14,13 @@ from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap,
 
 st.set_page_config(page_title="Superstore · Phân tích & dự báo", layout="wide")
 st.markdown("""<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
+html, body, .stApp, [data-testid="stSidebar"], .stMarkdown,
+[data-testid="stMetric"], [data-testid="stWidgetLabel"],
+[data-testid="stTable"], [data-testid="stDataFrame"] {
+ font-family: 'Nunito', 'Segoe UI', sans-serif !important;
+}
+h1, h2, h3, h4, p, label, button {font-family:'Nunito','Segoe UI',sans-serif !important;}
 :root {--navy:#172f50; --orange:#ca7045; --cream:#fffdf9; --sky:#e8f4f8;}
 .stApp {background:#fffdf9; color:#273447;}
 [data-testid="stSidebar"] {background:#e9f3f7; border-right:1px solid #d8e3eb;}
@@ -23,7 +30,7 @@ st.markdown("""<style>
 [data-testid="stMetricLabel"] {color:#956145;font-size:.89rem;font-weight:650;}
 [data-testid="stMetricValue"] {color:#183451;font-size:clamp(1.1rem,2.0vw,1.8rem);letter-spacing:-.02em;}
 [data-testid="stMetricValue"] > div {white-space:nowrap;}
-h1,h2,h3 {color:#162e55;letter-spacing:-.025em;}
+h1,h2,h3 {color:#162e55;letter-spacing:-.025em;font-weight:800;}
 h1 {font-size:2.2rem !important;}
 [data-testid="stSidebar"] h2 {color:#183451;}
 .stButton button[kind="primary"] {background:#ca7045;}
@@ -56,6 +63,27 @@ def number(value, digits=0):
     if pd.isna(value):
         return "—"
     return f"{value:,.{digits}f}".replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def donut_with_percent(frame, names_col, values_col, title=""):
+    """Display exact segment percentages on chart, even without hover."""
+    fig = px.pie(
+        frame, names=names_col, values=values_col, hole=0.47,
+        color_discrete_sequence=["#c7794b", "#80acd2", "#243f75"]
+    )
+    fig.update_traces(
+        textinfo="percent", textposition="inside",
+        textfont=dict(size=15, family="Nunito, Segoe UI, sans-serif"),
+        hovertemplate="<b>%{label}</b><br>Số khách: %{value:,.0f}<br>Tỷ trọng: %{percent}<extra></extra>",
+        sort=False
+    )
+    fig.update_layout(
+        title=title, height=345, font=dict(family="Nunito, Segoe UI, sans-serif"),
+        paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+        margin=dict(l=10, r=10, t=20, b=10),
+        legend=dict(orientation="h", y=-0.08, x=0, title_text="")
+    )
+    return fig
 
 
 def table(frame, filename, label="Xem bảng dữ liệu"):
@@ -228,6 +256,39 @@ def products(filters):
         st.altair_chart(heatmap, width="stretch")
         st.caption("Mỗi ô = SUM(profit) / SUM(sales) × 100%; chỉ dùng dòng chi tiết CUBE (grouping_level = 0). "
                    "Bộ lọc năm chỉ áp dụng cho Heatmap và giao với khoảng thời gian ở thanh bên trái.")
+    st.subheader("Boxplot doanh thu theo thị trường và ngành hàng")
+    box_lines = sales_lines(filters)
+    if box_lines.empty:
+        st.info("Không có dữ liệu để vẽ boxplot trong phạm vi đã chọn.")
+    else:
+        box_mode = st.radio(
+            "Cấp độ phân tích Boxplot",
+            ["Theo thị trường", "Theo ngành hàng", "Theo thị trường và ngành hàng"],
+            horizontal=True, key="sales_boxplot_mode"
+        )
+        if box_mode == "Theo thị trường":
+            dimension, color = "market", "market"
+        elif box_mode == "Theo ngành hàng":
+            dimension, color = "category", "category"
+        else:
+            dimension, color = "market", "category"
+        box_fig = px.box(
+            box_lines, x=dimension, y="sales", color=color, points="outliers",
+            labels={"sales": "Doanh thu mỗi dòng bán hàng", "market": "Thị trường",
+                    "category": "Ngành hàng"},
+            color_discrete_sequence=["#c7794b", "#80acd2", "#243f75", "#deb97e",
+                                     "#5b9a9d", "#7774a0", "#d39a9b"]
+        )
+        box_fig.update_layout(
+            height=440, paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+            font=dict(family="Nunito, Segoe UI, sans-serif"),
+            margin=dict(l=12, r=10, t=20, b=15), legend_title_text="",
+            xaxis_title="", yaxis_title="Doanh thu mỗi dòng bán hàng"
+        )
+        st.plotly_chart(box_fig, use_container_width=True, key="sales_market_boxplot")
+        st.caption("Boxplot biểu diễn phân phối doanh thu trên từng dòng giao dịch, "
+                   "không phải doanh thu tổng của mỗi thị trường. Đường giữa: trung vị; "
+                   "hộp: Q1–Q3; các điểm nằm ngoài râu là ngoại lệ theo quy tắc 1,5×IQR.")
     table(product, "product_drilldown")
     st.subheader("10 quốc gia có doanh thu và lợi nhuận thấp nhất")
     st.caption("Doanh thu thấp phản ánh quy mô bán hàng nhỏ, không đồng nghĩa với thua lỗ. "
@@ -322,10 +383,10 @@ def customers(filters):
     k1.metric("Khách hàng hoạt động", number(kpis["active"]))
     k2.metric("Khách hàng mới", number(kpis["new"]))
     k3.metric("Khách hàng quay lại", number(kpis["returning"]))
-    k4.metric("Tỷ lệ mua lặp", number(kpis["repeat_pct"], 2) + "%")
+    k4.metric("Tỷ lệ khách hàng quay lại", number(kpis["returning_pct"], 2) + "%")
     st.caption("Khách mới = có giao dịch đầu tiên trong phạm vi thị trường/ngành hàng trước ngày kết thúc, "
                "và giao dịch đầu tiên thuộc kỳ đang chọn. Khách quay lại = đã giao dịch trước kỳ đang chọn. "
-               "Tỷ lệ mua lặp = khách hoạt động có từ hai đơn hàng phân biệt trở lên tính đến cuối kỳ.")
+               "Tỷ lệ khách quay lại = khách hoạt động đã từng mua trước kỳ / tổng khách hoạt động × 100%.")
     p, q = st.columns(2)
     p.metric(f"Khách không hoạt động {lookback} tháng", f'{number(kpis["inactive"])} / {number(kpis["previous"])}')
     q.metric("Tỷ lệ không hoạt động (đại diện churn)", number(kpis["inactive_pct"], 2) + "%")
@@ -342,13 +403,10 @@ def customers(filters):
         a, b = st.columns(2)
         with a:
             st.markdown("**Cơ cấu khách hàng theo phân khúc**")
-            st.altair_chart(alt.Chart(segments).mark_arc(innerRadius=56).encode(
-                theta="customers:Q",
-                color=alt.Color("segment_vi:N", title="Phân khúc",
-                                scale=alt.Scale(range=["#c7794b", "#80acd2", "#243f75"])),
-                tooltip=["segment_vi:N", "customers:Q",
-                         alt.Tooltip("share_pct:Q", format=".2f", title="Tỷ trọng (%)")]
-            ).properties(height=320), width="stretch")
+            fig_segment = donut_with_percent(
+                segments, names_col="segment_vi", values_col="customers"
+            )
+            st.plotly_chart(fig_segment, use_container_width=True, key="customer_segment_donut")
         with b:
             st.markdown("**Doanh thu và lợi nhuận theo nhóm khách hàng**")
             bar(segments.rename(columns={"segment_vi":"customer_segment"}), "customer_segment", "sales", limit=3)
