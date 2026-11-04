@@ -23,7 +23,7 @@ def customer_kpis(orders, start, end, lookback_months=12):
     without an order during the preceding N months. No true churn label exists.
     """
     empty = {"active": 0, "new": 0, "returning": 0, "repeat": 0,
-             "repeat_pct": 0.0, "previous": 0, "inactive": 0, "inactive_pct": 0.0}
+             "repeat_pct": 0.0, "returning_pct": 0.0, "previous": 0, "inactive": 0, "inactive_pct": 0.0}
     if orders.empty:
         return empty
     data = orders.copy()
@@ -42,6 +42,7 @@ def customer_kpis(orders, start, end, lookback_months=12):
     inactive = previous - recent
     n_active = len(active)
     return {"active": n_active, "new": len(new), "returning": n_active - len(new),
+            "returning_pct": 100 * (n_active - len(new)) / n_active if n_active else 0.,
             "repeat": int(repeat), "repeat_pct": 100 * repeat / n_active if n_active else 0.,
             "previous": len(previous), "inactive": len(inactive),
             "inactive_pct": 100 * len(inactive) / len(previous) if previous else 0.}
@@ -66,7 +67,7 @@ def sales_lines(filters):
     """All filtered sales lines for exact line-level correlation coefficients."""
     where, params = filter_clause(*filters)
     return query(f"""
-        SELECT row_id, sales, profit, discount, quantity, category, sub_category
+        SELECT row_id, sales, profit, discount, quantity, market, category, sub_category
         FROM dw.v_sales_analysis WHERE {where}
         ORDER BY row_id
     """, params)
