@@ -145,7 +145,22 @@ def products(filters):
         bar(items, "product_name", measure, limit=10)
         table(items, "product_level_details", "Danh sách sản phẩm trong phân nhóm")
     st.subheader("Heatmap biên lợi nhuận: ngành hàng × thị trường")
-    cube = olap("09_market_category_cube", filters)
+    # The year selector refines only this heatmap, within the global date range.
+    last_included = (pd.Timestamp(filters[1]) - pd.Timedelta(days=1)).year
+    years = list(range(filters[0].year, last_included + 1))
+    selected_year = st.selectbox(
+        "Năm phân tích Heatmap",
+        ["Toàn giai đoạn", *years],
+        key="heatmap_year",
+        help="Chỉ áp dụng cho Heatmap; vẫn tuân theo khoảng tháng và các bộ lọc thị trường, sản phẩm bên trái."
+    )
+    heat_filters = filters
+    if selected_year != "Toàn giai đoạn":
+        start_year = pd.Timestamp(year=selected_year, month=1, day=1).date()
+        end_year = pd.Timestamp(year=selected_year + 1, month=1, day=1).date()
+        heat_filters = (max(filters[0], start_year), min(filters[1], end_year),
+                        filters[2], filters[3])
+    cube = olap("09_market_category_cube", heat_filters)
     heat = cube.loc[cube.grouping_level.eq(0) & cube.sales.gt(0)].copy()
     if heat.empty:
         st.info("Không có dữ liệu để vẽ heatmap.")
@@ -161,7 +176,8 @@ def products(filters):
                      alt.Tooltip("margin_pct:Q", format=".2f", title="Biên lợi nhuận (%)")]
         ).properties(height=235)
         st.altair_chart(heatmap, width="stretch")
-        st.caption("Mỗi ô = SUM(profit) / SUM(sales) × 100%; chỉ dùng các dòng chi tiết CUBE (grouping_level = 0).")
+        st.caption("Mỗi ô = SUM(profit) / SUM(sales) × 100%; chỉ dùng dòng chi tiết CUBE (grouping_level = 0). "
+                   "Bộ lọc năm chỉ áp dụng cho Heatmap và giao với khoảng thời gian ở thanh bên trái.")
     table(product, "product_drilldown")
     st.subheader("10 quốc gia có doanh thu và lợi nhuận thấp nhất")
     st.caption("Doanh thu thấp phản ánh quy mô bán hàng nhỏ, không đồng nghĩa với thua lỗ. "
