@@ -78,5 +78,20 @@ def monthly_growth(filters):
     return query(sql, (*params, filters[0], filters[1]))
 
 
+
+def product_details(filters, category, sub_category):
+    """Drill-down to the exact product grain (ID + name), respecting all OLAP filters."""
+    where, params = filter_clause(*filters)
+    sql = f"""
+    SELECT product_id, product_name, category, sub_category,
+           SUM(sales) AS sales, SUM(profit) AS profit, SUM(quantity) AS quantity,
+           ROUND(SUM(profit)/NULLIF(SUM(sales),0),8) AS profit_margin
+    FROM dw.v_sales_analysis
+    WHERE {where} AND category = %s AND sub_category = %s
+    GROUP BY product_id, product_name, category, sub_category
+    ORDER BY profit ASC, product_id, product_name
+    """
+    return query(sql, (*params, category, sub_category))
+
 def current_monthly():
     return query((ROOT / "src/forecasting/monthly_sales.sql").read_text(encoding="utf-8"))
