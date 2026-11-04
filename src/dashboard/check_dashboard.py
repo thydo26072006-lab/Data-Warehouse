@@ -10,6 +10,7 @@ import psycopg
 from streamlit.testing.v1 import AppTest
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
+from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales
 
 
 class DashboardChecks(unittest.TestCase):
@@ -31,6 +32,10 @@ class DashboardChecks(unittest.TestCase):
             with self.subTest(query=name):
                 actual = olap(name, self.filters)
                 expected = pd.read_csv(ROOT / "results/warehouse/olap" / (name + ".csv"))
+                # CUBE text ordering depends on the PostgreSQL database collation.
+                if name == "09_market_category_cube":
+                    actual = actual.sort_values(["market", "category"], na_position="last").reset_index(drop=True)
+                    expected = expected.sort_values(["market", "category"], na_position="last").reset_index(drop=True)
                 pd.testing.assert_frame_equal(actual, expected, check_dtype=False, rtol=1e-8, atol=1e-6)
 
     def test_filtered_kpis_match_source_and_order_composite_key(self):
@@ -130,6 +135,44 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertTrue(app.info)
         self.assertEqual(len(app.metric), 0)
+
+    def test_customer_behavior_and_segment_totals(self):
+        orders = customer_orders(self.filters)
+        k = customer_kpis(orders, self.filters[0], self.filters[1], 12)
+        segments = segment_breakdown(orders, self.filters[0], self.filters[1])
+        self.assertGreater(k["active"], 0)
+        self.assertEqual(k["active"], k["new"] + k["returning"])
+        self.assertLessEqual(k["repeat"], k["active"])
+        self.assertLessEqual(k["inactive"], k["previous"])
+        self.assertEqual(int(segments.customers.sum()), k["active"])
+        self.assertAlmostEqual(segments.share_pct.sum(), 100, places=6)
+        self.assertEqual(set(segments.segment), {"Consumer", "Corporate", "Home Office"})
+        app = self.app()
+        app.sidebar.radio[0].set_value("Khách hàng & đơn hàng").run()
+        self.assert_clean(app)
+        self.assertIn("Phân khúc khách hàng và hành vi mua sắm",
+                      [x.value for x in app.subheader])
+        self.assertIn("Phân tích tương quan giữa các chỉ tiêu",
+                      [x.value for x in app.subheader])
+        self.assertIn("Rủi ro lợi nhuận theo mức chiết khấu",
+                      [x.value for x in app.subheader])
+
+    def test_line_level_correlation_and_us_map_source(self):
+        rows = sales_lines(self.filters)
+        overview = olap("01_overview", self.filters).iloc[0]
+        self.assertEqual(len(rows), overview.sales_lines)
+        self.assertAlmostEqual(rows.sales.sum(), overview.sales, places=4)
+        self.assertTrue(rows.discount.between(0, 1).all())
+        states = state_sales(self.filters)
+        us = olap("05_geography", self.filters)
+        us = us.loc[us.country.eq("United States")]
+        self.assertAlmostEqual(states.sales.sum(), us.sales.sum(), places=4)
+        self.assertGreater(len(states), 0)
+        app = self.app()
+        app.sidebar.radio[0].set_value("Sản phẩm & thị trường").run()
+        self.assert_clean(app)
+        self.assertIn("Bản đồ doanh thu và biên lợi nhuận theo địa lý",
+                      [x.value for x in app.subheader])
 
     def test_stale_forecast_is_hidden(self):
         app = self.app()
