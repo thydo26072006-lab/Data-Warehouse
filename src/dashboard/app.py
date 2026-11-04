@@ -9,6 +9,7 @@ import streamlit as st
 import plotly.express as px
 
 from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales
+from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
@@ -38,7 +39,7 @@ div[data-testid="stVerticalBlock"] {row-gap:0.9rem;}
 </style>""", unsafe_allow_html=True)
 
 PINK = "#ca7045"  # Warm orange accent, paired with the navy / light-blue dashboard
-PAGES = ["Tổng quan", "Sản phẩm & thị trường", "Khách hàng & đơn hàng", "Khám phá OLAP", "Dự báo doanh thu"]
+PAGES = ["Tổng quan", "Sản phẩm & thị trường", "Khách hàng & đơn hàng", "Khám phá OLAP", "Dự báo doanh thu", "Hỏi đáp dữ liệu"]
 TITLES = dict(zip(QUERIES, [
     "01 · Tổng quan", "02 · Tăng trưởng theo tháng", "03 · ROLLUP thời gian",
     "04 · Drill-down sản phẩm", "05 · Địa lý", "06 · Phân khúc khách hàng",
@@ -65,25 +66,32 @@ def number(value, digits=0):
     return f"{value:,.{digits}f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
-def donut_with_percent(frame, names_col, values_col, title=""):
-    """Display exact segment percentages on chart, even without hover."""
-    fig = px.pie(
-        frame, names=names_col, values=values_col, hole=0.47,
-        color_discrete_sequence=["#c7794b", "#80acd2", "#243f75"]
-    )
+def style_pie_percent(fig, height=310):
+    """All dashboard pies show their actual percentage labels, not hover-only."""
     fig.update_traces(
-        textinfo="percent", textposition="inside",
-        textfont=dict(size=15, family="Nunito, Segoe UI, sans-serif"),
-        hovertemplate="<b>%{label}</b><br>Số khách: %{value:,.0f}<br>Tỷ trọng: %{percent}<extra></extra>",
+        texttemplate="%{percent}", textposition="outside", automargin=True,
+        textfont=dict(size=14, family="Nunito, Segoe UI, sans-serif"),
+        hovertemplate="<b>%{label}</b><br>Giá trị: %{value:,.2f}<br>Tỷ trọng: %{percent}<extra></extra>",
         sort=False
     )
     fig.update_layout(
-        title=title, height=345, font=dict(family="Nunito, Segoe UI, sans-serif"),
+        height=height, font=dict(family="Nunito, Segoe UI, sans-serif"),
         paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
-        margin=dict(l=10, r=10, t=20, b=10),
-        legend=dict(orientation="h", y=-0.08, x=0, title_text="")
+        margin=dict(l=20, r=20, t=14, b=45),
+        uniformtext_mode="show",
+        legend=dict(orientation="h", y=-0.15, x=0, title_text="")
     )
     return fig
+
+
+def donut_with_percent(frame, names_col, values_col, height=310):
+    """The same labeled Plotly donut for every market/category/segment view."""
+    fig = px.pie(
+        frame, names=names_col, values=values_col, hole=0.44,
+        color_discrete_sequence=["#c7794b", "#80acd2", "#243f75",
+                                 "#deb97e", "#5b9a9d", "#7774a0", "#d39a9b"]
+    )
+    return style_pie_percent(fig, height=height)
 
 
 def table(frame, filename, label="Xem bảng dữ liệu"):
@@ -140,20 +148,11 @@ def overview(filters, summary):
         category_summary["share"] = 100 * category_summary.sales / category_summary.sales.sum()
         k1, k2 = st.columns(2)
         with k1:
-            sales_donut = px.pie(
-                category_summary, names="category", values="sales", hole=0.47,
-                color_discrete_sequence=["#c7794b", "#80acd2", "#243f75"]
+            st.caption("Tỷ trọng doanh thu theo ngành hàng")
+            st.plotly_chart(
+                donut_with_percent(category_summary, "category", "sales", height=280),
+                use_container_width=True, key="category_sales_donut"
             )
-            sales_donut.update_traces(
-                textinfo="percent", textposition="inside",
-                hovertemplate="<b>%{label}</b><br>Doanh thu: %{value:,.2f}<br>Tỷ trọng: %{percent}<extra></extra>"
-            )
-            sales_donut.update_layout(
-                height=270, font=dict(family="Nunito, Segoe UI, sans-serif"),
-                paper_bgcolor="#fffdf9", margin=dict(l=4, r=4, t=8, b=8),
-                legend=dict(orientation="h", y=-0.1, title_text="")
-            )
-            st.plotly_chart(sales_donut, use_container_width=True, key="category_sales_donut")
         with k2:
             bar(category_summary, "category", "profit", limit=3)
     st.markdown("#### Phân khúc và thị trường nổi bật")
@@ -163,11 +162,8 @@ def overview(filters, summary):
     r1, r2, r3 = st.columns(3)
     with r1:
         st.caption("Tỷ trọng doanh thu theo phân khúc")
-        st.altair_chart(alt.Chart(seg).mark_arc(innerRadius=48).encode(
-            theta="sales:Q", color=alt.Color("segment:N", title="Phân khúc",
-                scale=alt.Scale(range=["#c7794b","#80acd2","#243f75"])),
-            tooltip=["segment:N",alt.Tooltip("sales:Q",format=",.2f")]
-        ).properties(height=250), width="stretch")
+        st.plotly_chart(donut_with_percent(seg, "segment", "sales", height=280),
+                        use_container_width=True, key="overview_segment_donut")
     with r2:
         st.caption("Doanh thu theo thị trường")
         market_totals = regional.groupby("market", as_index=False)[["sales","profit"]].sum()
@@ -411,7 +407,7 @@ def customers(filters):
         with a:
             st.markdown("**Cơ cấu khách hàng theo phân khúc**")
             fig_segment = donut_with_percent(
-                segments, names_col="segment_vi", values_col="customers"
+                segments, names_col="segment_vi", values_col="customers", height=345
             )
             st.plotly_chart(fig_segment, use_container_width=True, key="customer_segment_donut")
         with b:
@@ -628,6 +624,39 @@ def forecasts():
         st.caption("Thời điểm tạo kết quả: " + manifest["created_at"])
 
 
+
+def chat_page(filters):
+    st.subheader("Trợ lý hỏi đáp Global Superstore")
+    st.caption("Chỉ trả lời các câu hỏi về dữ liệu bán hàng Global Superstore 2011–2014 "
+               "theo bộ lọc ở thanh bên trái. Không sử dụng AI API, không tạo SQL tự do "
+               "và không trả lời các chủ đề ngoài dữ liệu của nhóm.")
+    with st.expander("Các câu hỏi được hỗ trợ", expanded=False):
+        for example in CHAT_EXAMPLES:
+            st.markdown("- " + example)
+    current_scope = (str(filters[0]), str(filters[1]), filters[2], filters[3])
+    if st.session_state.get("chat_scope") != current_scope:
+        st.session_state["chat_scope"] = current_scope
+        st.session_state["warehouse_chat"] = []
+    for item in st.session_state.get("warehouse_chat", []):
+        with st.chat_message(item["role"]):
+            st.markdown(item["text"])
+            if item.get("table") is not None:
+                st.dataframe(item["table"], use_container_width=True, hide_index=True)
+    prompt = st.chat_input("Hỏi về doanh thu, lợi nhuận, thị trường, khách hàng...", max_chars=400)
+    if prompt:
+        st.session_state["warehouse_chat"].append({"role": "user", "text": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        response, frame = answer_question(prompt, filters)
+        st.session_state["warehouse_chat"].append({
+            "role": "assistant", "text": response, "table": frame
+        })
+        with st.chat_message("assistant"):
+            st.markdown(response)
+            if frame is not None:
+                st.dataframe(frame, use_container_width=True, hide_index=True)
+
+
 def main():
     with st.sidebar:
         st.markdown("## KHO DỮ LIỆU BÁN LẺ VÀ HỆ HỖ TRỢ QUYẾT ĐỊNH LẬP KẾ HOẠCH BÁN HÀNG")
@@ -667,6 +696,8 @@ def main():
             products(filters)
         elif page == "Khách hàng & đơn hàng":
             customers(filters)
+        elif page == "Hỏi đáp dữ liệu":
+            chat_page(filters)
         else:
             explorer(filters)
     except psycopg.Error:
