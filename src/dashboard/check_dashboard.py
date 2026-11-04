@@ -9,7 +9,7 @@ import pandas as pd
 import psycopg
 from streamlit.testing.v1 import AppTest
 
-from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap
+from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
 
 class DashboardChecks(unittest.TestCase):
@@ -66,6 +66,35 @@ class DashboardChecks(unittest.TestCase):
                     app.selectbox[0].set_value(category).run()
                     self.assert_clean(app)
                     self.assertEqual(app.metric[1].value, wape)
+
+    def test_new_olap_views_and_product_drilldown(self):
+        app = self.app()
+        self.assert_clean(app)
+        self.assertIn("ROLLUP doanh thu theo thời gian", [x.value for x in app.subheader])
+        # Product-level query must not duplicate or lose rows under a composite product key.
+        grouped = olap("04_product_drilldown", self.filters)
+        expected = grouped[(grouped.category == "Furniture") &
+                           (grouped.sub_category == "Tables")].iloc[0]
+        details = product_details(self.filters, "Furniture", "Tables")
+        self.assertAlmostEqual(details.sales.sum(), expected.sales, places=5)
+        self.assertAlmostEqual(details.profit.sum(), expected.profit, places=5)
+        app.sidebar.radio[0].set_value("Sản phẩm & thị trường").run()
+        self.assert_clean(app)
+        self.assertIn("Heatmap biên lợi nhuận: ngành hàng × thị trường",
+                      [x.value for x in app.subheader])
+        app.selectbox[0].set_value("Furniture").run()
+        app.selectbox[1].set_value("Tables").run()
+        self.assert_clean(app)
+
+    def test_forecast_diagnostics_without_changing_published_metrics(self):
+        app = self.app()
+        app.sidebar.radio[0].set_value("Dự báo doanh thu").run()
+        self.assert_clean(app)
+        self.assertIn("Chẩn đoán sai số dự báo năm 2014",
+                      [x.value for x in app.subheader])
+        self.assertEqual(app.metric[0].value, "352.375,83")
+        self.assertEqual(app.metric[1].value, "9,63%")
+        self.assertGreaterEqual(len(app.metric), 6)
 
     def test_filter_widgets_and_empty_selection(self):
         app = self.app()
