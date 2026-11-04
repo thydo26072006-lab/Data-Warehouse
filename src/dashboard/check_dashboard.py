@@ -86,6 +86,22 @@ class DashboardChecks(unittest.TestCase):
         app.selectbox[1].set_value("Tables").run()
         self.assert_clean(app)
 
+    def test_bottom_ten_countries_match_sql_geography(self):
+        # Country totals must aggregate all (market, region, country) rows before ranking.
+        geography = olap("05_geography", self.filters)
+        country_totals = geography.groupby("country", as_index=False)[["sales", "profit"]].sum()
+        low_sales = country_totals.nsmallest(10, "sales")
+        low_profit = country_totals.nsmallest(10, "profit")
+        self.assertEqual(len(low_sales), 10)
+        self.assertEqual(len(low_profit), 10)
+        self.assertEqual(low_sales.iloc[0].country, "Equatorial Guinea")
+        self.assertEqual(low_profit.iloc[0].country, "Turkey")
+        app = self.app()
+        app.sidebar.radio[0].set_value("Sản phẩm & thị trường").run()
+        self.assert_clean(app)
+        self.assertIn("10 quốc gia có doanh thu và lợi nhuận thấp nhất",
+                      [item.value for item in app.subheader])
+
     def test_forecast_diagnostics_without_changing_published_metrics(self):
         app = self.app()
         app.sidebar.radio[0].set_value("Dự báo doanh thu").run()
