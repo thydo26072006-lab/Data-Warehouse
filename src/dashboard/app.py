@@ -121,6 +121,26 @@ def overview(filters, summary):
             st.altair_chart(donut, width="stretch")
         with k2:
             bar(category_summary, "category", "profit", limit=3)
+    st.markdown("#### Phân khúc và thị trường nổi bật")
+    seg = olap("06_customer_segments", filters)
+    regional = olap("05_geography", filters)
+    sub = olap("04_product_drilldown", filters)
+    r1, r2, r3 = st.columns(3)
+    with r1:
+        st.caption("Tỷ trọng doanh thu theo phân khúc")
+        st.altair_chart(alt.Chart(seg).mark_arc(innerRadius=48).encode(
+            theta="sales:Q", color=alt.Color("segment:N", title="Phân khúc",
+                scale=alt.Scale(range=["#c7794b","#80acd2","#243f75"])),
+            tooltip=["segment:N",alt.Tooltip("sales:Q",format=",.2f")]
+        ).properties(height=250), width="stretch")
+    with r2:
+        st.caption("Doanh thu theo thị trường")
+        market_totals = regional.groupby("market", as_index=False)[["sales","profit"]].sum()
+        bar(market_totals, "market", "sales", limit=7)
+    with r3:
+        st.caption("Top phân nhóm theo lợi nhuận")
+        sub = sub.loc[sub.sub_category.notna() & sub.category.notna()].copy()
+        bar(sub, "sub_category", "profit", limit=7)
 
     latest = monthly.iloc[-1]
     left, right = st.columns(2)
