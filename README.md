@@ -15,7 +15,15 @@ Các kết quả trong `results/` là đầu vào cần thiết cho ứng dụng
 
 ## Phần đã hoàn thành
 
-Star Schema 1 Fact + 5 Dimension, 6 FK; ETL, nạp lại và rollback; 12 truy vấn OLAP; DSS dự báo Holt–Winters; frontend Streamlit 5 trang. Bản nguồn đã chạy 8 kiểm thử tiền xử lý, 4 kiểm thử dự báo, 8 kiểm thử ứng dụng, kiểm tra Edge và 53 đối soát. Số liệu dự báo làm tròn khớp báo cáo.
+Star Schema 1 Fact + 5 Dimension, 6 FK; ETL, nạp lại và rollback; 12 truy vấn OLAP; DSS dự báo Holt–Winters; frontend Streamlit 5 trang. Bản nguồn đã chạy 8 kiểm thử tiền xử lý, 4 kiểm thử dự báo, 8 kiểm thử ứng dụng ở bản bàn giao gốc (đã bổ sung 2 test mới, chưa chạy lại trên máy này), kiểm tra Edge và 53 đối soát. Số liệu dự báo làm tròn khớp báo cáo.
+
+## Cập nhật Dashboard – OLAP và chẩn đoán dự báo
+
+- **Tổng quan:** bổ sung biểu đồ ROLLUP có thể chọn Năm / Quý / Tháng, lấy trực tiếp từ truy vấn `03_time_rollup`.
+- **Sản phẩm & thị trường:** chọn ngành hàng → phân nhóm → xem top sản phẩm và tải bảng chi tiết theo đúng khóa ghép `product_id + product_name`; bổ sung heatmap biên lợi nhuận Category × Market từ các dòng chi tiết của `09_market_category_cube`.
+- **Dự báo doanh thu:** giữ nguyên các file kết quả Holt–Winters hiện có; thêm biểu đồ sai số dự báo cuốn chiếu 2014, WAPE trên các tháng doanh thu thực tế giảm, số lần đúng chiều tăng/giảm và Top 5 tháng sai số lớn.
+- **Kiểm thử:** bổ sung hai test giao diện/tích hợp vào `src/dashboard/check_dashboard.py`. Các test mới cần chạy với PostgreSQL cục bộ đã nạp dữ liệu, theo lệnh kiểm tra bên dưới.
+- **Phạm vi:** chưa huấn luyện mô hình mới, chưa thay đổi ETL, Star Schema, 12 truy vấn nguồn và giá trị dự báo tháng 01/2015. Dự báo là toàn thị trường và không chịu bộ lọc OLAP. Không suy diễn chu kỳ kinh tế 4 năm từ 48 tháng dữ liệu.
 
 ## Chạy trên máy người nhận
 
