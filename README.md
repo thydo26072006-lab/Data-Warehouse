@@ -56,6 +56,15 @@ py src/dashboard/check_dashboard.py
 
 Các bài test mới **chưa được xác nhận PASS** trên máy người nhận. Nên kiểm tra lại dữ liệu PostgreSQL cục bộ và lưu ảnh minh chứng sau khi chạy.
 
+## Cập nhật biểu đồ và KPI khách hàng (04/11/2026)
+
+- Biểu đồ donut cơ cấu khách hàng và cơ cấu doanh thu theo ngành hàng hiển thị phần trăm trực tiếp.
+- KPI **Tỷ lệ khách hàng quay lại** thay cho tỷ lệ mua lặp: khách hoạt động đã phát sinh đơn trước kỳ chia tổng số khách hoạt động trong kỳ. Đây không phải tỷ lệ mua lặp trong toàn bộ lịch sử.
+- Boxplot doanh thu theo thị trường, ngành hàng hoặc tổ hợp thị trường × ngành hàng, phân phối trên **dòng giao dịch** (không phải tổng doanh thu của thị trường). Dữ liệu lấy từ PostgreSQL qua `insights.sales_lines`.
+- Font Nunito với phông dự phòng Segoe UI; bản đồ và Plotly donut cũng sử dụng Nunito.
+- File thay đổi: `src/dashboard/app.py`, `src/dashboard/insights.py`, `src/dashboard/check_dashboard.py`. Các thư viện Plotly đã nằm trong `src/dashboard/requirements.txt`.
+- Chưa có xác nhận kết quả kiểm thử tích hợp trên PostgreSQL cho commit này: chạy `py -u src/dashboard/check_dashboard.py` ở terminal CMD đã cấu hình `SUPERSTORE_DATABASE_URL` và `PGPASSFILE`.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
