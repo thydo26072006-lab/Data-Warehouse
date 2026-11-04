@@ -627,9 +627,8 @@ def forecasts():
 
 def chat_page(filters):
     st.subheader("Trợ lý hỏi đáp Global Superstore")
-    st.caption("Chỉ trả lời các câu hỏi về dữ liệu bán hàng Global Superstore 2011–2014 "
-               "theo bộ lọc ở thanh bên trái. Không sử dụng AI API, không tạo SQL tự do "
-               "và không trả lời các chủ đề ngoài dữ liệu của nhóm.")
+    st.caption("Khám phá doanh thu, lợi nhuận, sản phẩm, thị trường và khách hàng "
+               "từ dữ liệu Global Superstore 2011–2014. Kết quả theo bộ lọc ở thanh bên trái.")
     with st.expander("Các câu hỏi được hỗ trợ", expanded=False):
         for example in CHAT_EXAMPLES:
             st.markdown("- " + example)
