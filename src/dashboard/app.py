@@ -6,18 +6,31 @@ import altair as alt
 import pandas as pd
 import psycopg
 import streamlit as st
+import plotly.express as px
+
+from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
 st.set_page_config(page_title="Superstore · Phân tích & dự báo", layout="wide")
 st.markdown("""<style>
-.stApp {background:#fffafd;} [data-testid="stSidebar"] {background:#fcecf4;}
-.block-container {padding-top:2rem; max-width:1500px;}
-[data-testid="stMetric"] {background:white;border:1px solid #f1d4e2;border-radius:14px;padding:18px;}
-h1,h2,h3 {color:#71304f;} [data-testid="stMetricValue"] {color:#a50040;}
+:root {--navy:#172f50; --orange:#ca7045; --cream:#fffdf9; --sky:#e8f4f8;}
+.stApp {background:#fffdf9; color:#273447;}
+[data-testid="stSidebar"] {background:#e9f3f7; border-right:1px solid #d8e3eb;}
+.block-container {padding-top:1.35rem; max-width:1560px; padding-bottom:2rem;}
+[data-testid="stMetric"] {background:#ffffff;border:1px solid #dae4eb;border-radius:12px;
+ padding:17px 15px;box-shadow:0 2px 9px rgba(26,48,78,.055);min-width:0;}
+[data-testid="stMetricLabel"] {color:#956145;font-size:.89rem;font-weight:650;}
+[data-testid="stMetricValue"] {color:#183451;font-size:clamp(1.1rem,2.0vw,1.8rem);letter-spacing:-.02em;}
+[data-testid="stMetricValue"] > div {white-space:nowrap;}
+h1,h2,h3 {color:#162e55;letter-spacing:-.025em;}
+h1 {font-size:2.2rem !important;}
+[data-testid="stSidebar"] h2 {color:#183451;}
+.stButton button[kind="primary"] {background:#ca7045;}
+div[data-testid="stVerticalBlock"] {row-gap:0.9rem;}
 </style>""", unsafe_allow_html=True)
 
-PINK = "#d80073"
+PINK = "#ca7045"  # Warm orange accent, paired with the navy / light-blue dashboard
 PAGES = ["Tổng quan", "Sản phẩm & thị trường", "Khách hàng & đơn hàng", "Khám phá OLAP", "Dự báo doanh thu"]
 TITLES = dict(zip(QUERIES, [
     "01 · Tổng quan", "02 · Tăng trưởng theo tháng", "03 · ROLLUP thời gian",
@@ -60,7 +73,7 @@ def bar(frame, dimension, measure="sales", limit=15, ascending=False):
     chart = alt.Chart(data).mark_bar(cornerRadiusEnd=4).encode(
         x=alt.X(f"{measure}:Q", title=NAMES.get(measure, measure)),
         y=alt.Y(f"{dimension}:N", sort="x" if ascending else "-x", title=None),
-        color=alt.condition(alt.datum[measure] < 0, alt.value("#a50040"), alt.value(PINK)),
+        color=alt.condition(alt.datum[measure] < 0, alt.value("#a94b34"), alt.value(PINK)),
         tooltip=[alt.Tooltip(f"{dimension}:N", title=NAMES.get(dimension, dimension)),
                  alt.Tooltip(f"{measure}:Q", title=NAMES.get(measure, measure), format=",.2f")],
     ).properties(height=max(210, len(data) * 28))
@@ -73,7 +86,7 @@ def lines(frame, columns, labels, height=330):
     chart = alt.Chart(data).mark_line(point=True).encode(
         x=alt.X("month:T", title="Tháng", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("value:Q", title="Doanh thu / lợi nhuận", scale=alt.Scale(zero=False)),
-        color=alt.Color("series:N", title=None, scale=alt.Scale(range=[PINK, "#5e6472", "#d59ab8"])),
+        color=alt.Color("series:N", title=None, scale=alt.Scale(range=[PINK, "#5e6472", "#b7d4e4"])),
         tooltip=[alt.Tooltip("month:T", title="Tháng", format="%m/%Y"),
                  alt.Tooltip("series:N", title="Chỉ tiêu"), alt.Tooltip("value:Q", format=",.2f", title="Giá trị")],
     ).properties(height=height).interactive()
@@ -92,6 +105,23 @@ def overview(filters, summary):
     monthly["month"] = pd.to_datetime(monthly.month)
     lines(monthly, ["sales", "profit"], NAMES)
     st.caption("Đơn vị tiền tệ theo dữ liệu gốc. Số đơn được đếm theo tổ hợp mã đơn, ngày đặt và mã khách hàng.")
+    st.markdown("#### Cơ cấu doanh thu và lợi nhuận")
+    category_summary = olap("09_market_category_cube", filters)
+    category_summary = category_summary.loc[category_summary.grouping_level.eq(2)].copy()
+    if not category_summary.empty:
+        category_summary["share"] = 100 * category_summary.sales / category_summary.sales.sum()
+        k1, k2 = st.columns(2)
+        with k1:
+            donut = alt.Chart(category_summary).mark_arc(innerRadius=55).encode(
+                theta="sales:Q", color=alt.Color("category:N", title="Ngành hàng",
+                    scale=alt.Scale(range=["#cd7549", "#83acd7", "#203e78"])),
+                tooltip=["category:N", alt.Tooltip("sales:Q", format=",.2f"),
+                         alt.Tooltip("share:Q", format=".2f", title="Tỷ trọng (%)")]
+            ).properties(height=270)
+            st.altair_chart(donut, width="stretch")
+        with k2:
+            bar(category_summary, "category", "profit", limit=3)
+
     latest = monthly.iloc[-1]
     left, right = st.columns(2)
     left.metric("Tăng trưởng doanh thu tháng cuối so tháng trước", "—" if pd.isna(latest.mom_growth) else number(latest.mom_growth * 100, 2) + "%")
@@ -198,6 +228,59 @@ def products(filters):
         st.write("Lợi nhuận thấp nhất")
         st.dataframe(bottom_profit[["country", "sales", "profit"]].rename(columns=NAMES),
                      hide_index=True, width="stretch")
+    st.subheader("Bản đồ doanh thu và biên lợi nhuận theo địa lý")
+    map_metric = st.radio("Chỉ tiêu bản đồ", ["Doanh thu", "Biên lợi nhuận (%)"], horizontal=True, key="geo_map_metric")
+    geography_level = st.radio("Phạm vi bản đồ", ["Thế giới (quốc gia)", "Hoa Kỳ (tiểu bang)"],
+                              horizontal=True, key="geo_map_level")
+    if geography_level == "Thế giới (quốc gia)":
+        mapped = countries.copy()
+        mapped["margin_pct"] = (100 * mapped.profit / mapped.sales.where(mapped.sales.ne(0)))
+        mapped["metric"] = mapped.sales if map_metric == "Doanh thu" else mapped.margin_pct
+        fig = px.choropleth(mapped, locations="country", locationmode="country names",
+                            color="metric", hover_name="country", hover_data={"sales": ":,.2f", "profit": ":,.2f",
+                            "margin_pct": ":.2f", "metric": False, "country": False},
+                            color_continuous_scale="YlOrBr" if map_metric == "Doanh thu" else "RdBu",
+                            color_continuous_midpoint=0 if map_metric != "Doanh thu" else None,
+                            labels={"metric": map_metric}, projection="natural earth")
+        fig.update_geos(showcoastlines=False, showcountries=True)
+    else:
+        state_frame = state_sales(filters)
+        state_codes = {
+            "Alabama":"AL","Alaska":"AK","Arizona":"AZ","Arkansas":"AR","California":"CA",
+            "Colorado":"CO","Connecticut":"CT","Delaware":"DE","District of Columbia":"DC",
+            "Florida":"FL","Georgia":"GA","Hawaii":"HI","Idaho":"ID","Illinois":"IL",
+            "Indiana":"IN","Iowa":"IA","Kansas":"KS","Kentucky":"KY","Louisiana":"LA",
+            "Maine":"ME","Maryland":"MD","Massachusetts":"MA","Michigan":"MI",
+            "Minnesota":"MN","Mississippi":"MS","Missouri":"MO","Montana":"MT",
+            "Nebraska":"NE","Nevada":"NV","New Hampshire":"NH","New Jersey":"NJ",
+            "New Mexico":"NM","New York":"NY","North Carolina":"NC","North Dakota":"ND",
+            "Ohio":"OH","Oklahoma":"OK","Oregon":"OR","Pennsylvania":"PA",
+            "Rhode Island":"RI","South Carolina":"SC","South Dakota":"SD",
+            "Tennessee":"TN","Texas":"TX","Utah":"UT","Vermont":"VT",
+            "Virginia":"VA","Washington":"WA","West Virginia":"WV","Wisconsin":"WI",
+            "Wyoming":"WY"
+        }
+        state_frame["code"] = state_frame.state.map(state_codes)
+        state_frame = state_frame.dropna(subset=["code"])
+        if state_frame.empty:
+            st.info("Không có giao dịch tại Hoa Kỳ trong phạm vi bộ lọc.")
+        else:
+            state_frame["margin_pct"] = (100 * state_frame.profit / state_frame.sales.where(state_frame.sales.ne(0)))
+            state_frame["metric"] = state_frame.sales if map_metric == "Doanh thu" else state_frame.margin_pct
+            fig = px.choropleth(state_frame, locations="code", locationmode="USA-states",
+                                scope="usa", color="metric", hover_name="state",
+                                hover_data={"sales": ":,.2f", "profit": ":,.2f", "margin_pct": ":.2f",
+                                            "metric": False, "code": False},
+                                color_continuous_scale="YlOrBr" if map_metric == "Doanh thu" else "RdBu",
+                                color_continuous_midpoint=0 if map_metric != "Doanh thu" else None,
+                                labels={"metric": map_metric})
+    if geography_level == "Thế giới (quốc gia)" or not state_frame.empty:
+        fig.update_layout(height=450, margin=dict(l=5,r=5,t=10,b=5),
+                          paper_bgcolor="#fffdf9", geo=dict(bgcolor="#fffdf9"),
+                          coloraxis_colorbar=dict(title=map_metric))
+        st.plotly_chart(fig, use_container_width=True, key="sales_geography_map")
+    st.caption("Bản đồ sử dụng dữ liệu Global Superstore giai đoạn 2011–2014, không phải 2021–2024. "
+               "Lợi nhuận và biên lợi nhuận được tổng hợp theo địa bàn; không suy diễn nguyên nhân.")
     table(geo, "geography", "Chi tiết thị trường và địa lý")
     st.subheader("Sản phẩm cần theo dõi")
     losses = olap("11_loss_making_products", filters)
@@ -210,28 +293,119 @@ def products(filters):
 
 
 def customers(filters):
-    left, right = st.columns(2)
-    segments = olap("06_customer_segments", filters)
-    with left:
-        st.subheader("Doanh thu theo phân khúc")
-        bar(segments, "segment")
-    with right:
-        st.subheader("Lợi nhuận theo phân khúc")
-        bar(segments, "segment", "profit")
-    table(segments, "customer_segments")
+    st.subheader("Phân khúc khách hàng và hành vi mua sắm")
+    orders = customer_orders(filters)
+    lookback = st.selectbox("Khoảng thời gian đánh giá không hoạt động", [3, 6, 12],
+                           index=2, format_func=lambda n: f"{n} tháng", key="customer_lookback")
+    kpis = customer_kpis(orders, filters[0], filters[1], lookback)
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Khách hàng hoạt động", number(kpis["active"]))
+    k2.metric("Khách hàng mới", number(kpis["new"]))
+    k3.metric("Khách hàng quay lại", number(kpis["returning"]))
+    k4.metric("Tỷ lệ mua lặp", number(kpis["repeat_pct"], 2) + "%")
+    st.caption("Khách mới = có giao dịch đầu tiên trong phạm vi thị trường/ngành hàng trước ngày kết thúc, "
+               "và giao dịch đầu tiên thuộc kỳ đang chọn. Khách quay lại = đã giao dịch trước kỳ đang chọn. "
+               "Tỷ lệ mua lặp = khách hoạt động có từ hai đơn hàng phân biệt trở lên tính đến cuối kỳ.")
+    p, q = st.columns(2)
+    p.metric(f"Khách không hoạt động {lookback} tháng", f'{number(kpis["inactive"])} / {number(kpis["previous"])}')
+    q.metric("Tỷ lệ không hoạt động (đại diện churn)", number(kpis["inactive_pct"], 2) + "%")
+    st.caption(f"Churn proxy: trong số khách từng mua trước {lookback} tháng gần nhất tính đến cuối kỳ lọc, "
+               f"bao nhiêu khách không có đơn hàng trong {lookback} tháng đó. Đây KHÔNG phải xác nhận "
+               "khách hàng thực sự rời bỏ; kết quả chịu ảnh hưởng bởi phạm vi thời gian và bộ lọc thị trường/ngành hàng. "
+               "Giai đoạn đầu 2011 còn chịu giới hạn thiếu lịch sử mua trước đó.")
+    segments = segment_breakdown(orders, filters[0], filters[1])
+    if not segments.empty:
+        segments["segment_vi"] = segments.segment.map({
+            "Consumer": "Cá nhân (Consumer)", "Corporate": "Doanh nghiệp (Corporate)",
+            "Home Office": "Văn phòng tại nhà (Home Office)"
+        }).fillna(segments.segment)
+        a, b = st.columns(2)
+        with a:
+            st.markdown("**Cơ cấu khách hàng theo phân khúc**")
+            st.altair_chart(alt.Chart(segments).mark_arc(innerRadius=56).encode(
+                theta="customers:Q",
+                color=alt.Color("segment_vi:N", title="Phân khúc",
+                                scale=alt.Scale(range=["#c7794b", "#80acd2", "#243f75"])),
+                tooltip=["segment_vi:N", "customers:Q",
+                         alt.Tooltip("share_pct:Q", format=".2f", title="Tỷ trọng (%)")]
+            ).properties(height=320), width="stretch")
+        with b:
+            st.markdown("**Doanh thu và lợi nhuận theo nhóm khách hàng**")
+            bar(segments.rename(columns={"segment_vi":"customer_segment"}), "customer_segment", "sales", limit=3)
+        st.dataframe(segments[["segment_vi","customers","share_pct","sales","profit"]].rename(columns={
+            "segment_vi":"Phân khúc","customers":"Khách hàng","share_pct":"Tỷ trọng (%)",
+            "sales":"Doanh thu","profit":"Lợi nhuận"}), hide_index=True, width="stretch")
+    st.caption("Các phân khúc trong dữ liệu gốc là Consumer, Corporate và Home Office. Không tự gán Home Office thành khách hàng khác.")
+
+    st.subheader("Khách hàng, đơn hàng và vận chuyển")
     top = olap("07_top_customers", filters)
     table(top, "top_customers", "Top 20 khách hàng theo lợi nhuận")
-    st.subheader("Đơn hàng & chiết khấu")
     shipping = olap("08_order_shipping", filters)
-    discount = olap("12_discount_analysis", filters)
     left, right = st.columns(2)
     with left:
-        bar(shipping.groupby("ship_mode", as_index=False)[["sales", "profit", "shipping_cost"]].sum(), "ship_mode", "shipping_cost")
+        st.markdown("**Chi phí vận chuyển theo phương thức**")
+        bar(shipping.groupby("ship_mode", as_index=False)[["sales","profit","shipping_cost"]].sum(),
+            "ship_mode", "shipping_cost")
     with right:
-        bar(discount, "discount_band", "profit")
+        st.markdown("**Doanh thu theo phương thức vận chuyển**")
+        bar(shipping.groupby("ship_mode", as_index=False)[["sales","profit"]].sum(), "ship_mode", "sales")
     table(shipping, "order_shipping", "Chi tiết vận chuyển và ưu tiên đơn")
+
+    st.subheader("Rủi ro lợi nhuận theo mức chiết khấu")
+    discount = olap("12_discount_analysis", filters).copy()
+    discount["loss_rate_pct"] = (100 * discount.loss_lines /
+                                 discount.sales_lines.where(discount.sales_lines.ne(0))).fillna(0)
+    d1, d2 = st.columns(2)
+    with d1:
+        bar(discount, "discount_band", "profit", limit=10)
+    with d2:
+        risk = alt.Chart(discount).mark_bar(color="#ca7045").encode(
+            x=alt.X("discount_band:N", title="Mức chiết khấu", sort=None),
+            y=alt.Y("loss_rate_pct:Q", title="Tỷ lệ dòng lỗ (%)", scale=alt.Scale(domain=[0,100])),
+            tooltip=["discount_band:N","loss_lines:Q","sales_lines:Q",
+                     alt.Tooltip("loss_rate_pct:Q", title="Tỷ lệ dòng lỗ (%)", format=".2f")]
+        ).properties(height=270)
+        st.altair_chart(risk, width="stretch")
+    st.dataframe(discount[["discount_band","sales_lines","loss_lines","loss_rate_pct",
+                            "sales","profit"]].rename(columns={
+        "discount_band":"Mức chiết khấu","sales_lines":"Số dòng bán hàng",
+        "loss_lines":"Số dòng lỗ","loss_rate_pct":"Tỷ lệ dòng lỗ (%)",
+        "sales":"Doanh thu","profit":"Lợi nhuận"
+    }), width="stretch", hide_index=True)
+    st.caption("Tỷ lệ dòng lỗ = số dòng có profit < 0 / số dòng bán hàng × 100%. "
+               "Mối liên hệ giữa chiết khấu và lợi nhuận là quan sát lịch sử, không chứng minh quan hệ nhân quả.")
     table(discount, "discount_analysis", "Chi tiết các mức chiết khấu")
-    st.caption("Mối liên hệ giữa chiết khấu và lợi nhuận là quan sát lịch sử, chưa chứng minh tác động nhân quả.")
+
+    st.subheader("Phân tích tương quan giữa các chỉ tiêu")
+    lines_data = sales_lines(filters)
+    pair_options = {
+        "Doanh thu và lợi nhuận": ("sales", "profit"),
+        "Chiết khấu và lợi nhuận": ("discount", "profit"),
+        "Doanh thu và chiết khấu": ("sales", "discount"),
+    }
+    choice = st.selectbox("Chọn cặp biến", list(pair_options), key="correlation_pair")
+    xcol, ycol = pair_options[choice]
+    clean = lines_data[[xcol,ycol,"category","row_id"]].dropna()
+    if clean.empty or clean[xcol].nunique() < 2 or clean[ycol].nunique() < 2:
+        st.info("Không đủ độ biến thiên để tính tương quan Pearson trong phạm vi đang chọn.")
+    else:
+        pearson = float(clean[xcol].corr(clean[ycol], method="pearson"))
+        st.metric("Hệ số tương quan Pearson (r)", f"{pearson:+.3f}")
+        sample = clean.sample(n=min(len(clean), 5000), random_state=2026)
+        scatter = alt.Chart(sample).mark_circle(size=35, opacity=0.42).encode(
+            x=alt.X(f"{xcol}:Q", title=NAMES.get(xcol, xcol)),
+            y=alt.Y(f"{ycol}:Q", title=NAMES.get(ycol, ycol)),
+            color=alt.Color("category:N", title="Ngành hàng",
+                            scale=alt.Scale(range=["#c7794b", "#80acd2", "#243f75"])),
+            tooltip=["row_id:Q","category:N",
+                     alt.Tooltip(f"{xcol}:Q", format=",.3f"),
+                     alt.Tooltip(f"{ycol}:Q", format=",.3f")]
+        ).properties(height=330).interactive()
+        st.altair_chart(scatter, width="stretch")
+        st.caption(f"Hệ số r tính trên toàn bộ {number(len(clean))} dòng giao dịch lọc; "
+                   f"biểu đồ lấy mẫu tối đa 5.000 điểm để hiển thị nhanh. "
+                   "Pearson đo tương quan tuyến tính, không chứng minh quan hệ nhân quả; "
+                   "dữ liệu có thể có ngoại lệ và biến chiết khấu nhận giá trị rời rạc.")
 
 
 def explorer(filters):
@@ -302,7 +476,7 @@ def forecasts():
     line = alt.Chart(long).mark_line().encode(
         x=alt.X("month:T", title="Tháng", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("value:Q", title="Doanh thu (đơn vị gốc)", scale=alt.Scale(zero=False)),
-        color=alt.Color("series:N", title=None, scale=alt.Scale(range=["#c9a3b6", PINK, "#5e6472"])),
+        color=alt.Color("series:N", title=None, scale=alt.Scale(range=["#99bcd3", PINK, "#5e6472"])),
         tooltip=[alt.Tooltip("month:T", format="%m/%Y"), "series:N", alt.Tooltip("value:Q", format=",.2f")])
     point = alt.Chart(chart_data.dropna(subset=["next_forecast"])).mark_point(color=PINK, filled=True, size=170, shape="diamond", clip=False).encode(
         x="month:T", y="next_forecast:Q", tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("next_forecast:Q", title="Dự báo mới", format=",.2f")])
@@ -332,7 +506,7 @@ def forecasts():
     st.altair_chart(alt.Chart(diagnostic).mark_bar().encode(
         x=alt.X("month:T", title="Tháng kiểm tra", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("error:Q", title="Sai số thực tế − dự báo"),
-        color=alt.condition("datum.down_month", alt.value("#a50040"), alt.value("#8d9aa8")),
+        color=alt.condition("datum.down_month", alt.value("#a94b34"), alt.value("#8d9aa8")),
         tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("actual:Q", format=",.2f"),
                  alt.Tooltip("predicted:Q", format=",.2f"), alt.Tooltip("error:Q", format=",.2f"),
                  alt.Tooltip("down_month:N", title="Doanh thu giảm")]
@@ -346,6 +520,18 @@ def forecasts():
                                   "error": "Sai số", "abs_error": "Sai số tuyệt đối",
                                   "down_month": "Tháng giảm"}), hide_index=True, width="stretch")
     st.caption("WAPE tháng giảm là chỉ số chẩn đoán bổ sung, không thay thế WAPE kiểm tra toàn kỳ.")
+    st.markdown("**Nhận xét kết quả chẩn đoán**")
+    if pd.notna(wape_down):
+        st.write(f"Trong 12 tháng kiểm tra năm 2014 có {len(down)} tháng doanh thu giảm. "
+                 f"WAPE ở các tháng đó là {wape_down:.2f}%, so với WAPE toàn kỳ {chosen.wape_pct:.2f}%. "
+                 + ("Sai số tương đối cao hơn ở các tháng giảm, nên cần thận trọng khi dùng dự báo để lập kế hoạch."
+                    if wape_down > chosen.wape_pct else
+                    "Sai số tương đối ở các tháng giảm không cao hơn toàn kỳ trong lần đánh giá này."))
+    else:
+        st.write("Không có đủ tháng giảm hợp lệ để tính WAPE riêng.")
+    st.write(f"Mô hình dự đoán đúng chiều biến động so với tháng liền trước ở {correct}/{len(valid_direction)} "
+             "tháng kiểm tra. Sai số âm thể hiện dự báo cao hơn thực tế; cần đánh giá thêm mức độ sai số lớn "
+             "trước khi đưa ra quyết định kinh doanh. Các nhận xét chỉ áp dụng cho giai đoạn kiểm tra 2014.")
     with st.expander("Mô hình được xây dựng và đánh giá thế nào?"):
         st.write("Huấn luyện ban đầu: 2011–2012. Chọn mô hình trên 2013, kiểm tra trên 2014. "
                  "Mỗi mốc chỉ dùng dữ liệu trước tháng cần dự báo. Sau đánh giá, huấn luyện lại đến 12/2014 để dự báo 01/2015.")
