@@ -140,13 +140,20 @@ def overview(filters, summary):
         category_summary["share"] = 100 * category_summary.sales / category_summary.sales.sum()
         k1, k2 = st.columns(2)
         with k1:
-            donut = alt.Chart(category_summary).mark_arc(innerRadius=55).encode(
-                theta="sales:Q", color=alt.Color("category:N", title="Ngành hàng",
-                    scale=alt.Scale(range=["#cd7549", "#83acd7", "#203e78"])),
-                tooltip=["category:N", alt.Tooltip("sales:Q", format=",.2f"),
-                         alt.Tooltip("share:Q", format=".2f", title="Tỷ trọng (%)")]
-            ).properties(height=270)
-            st.altair_chart(donut, width="stretch")
+            sales_donut = px.pie(
+                category_summary, names="category", values="sales", hole=0.47,
+                color_discrete_sequence=["#c7794b", "#80acd2", "#243f75"]
+            )
+            sales_donut.update_traces(
+                textinfo="percent", textposition="inside",
+                hovertemplate="<b>%{label}</b><br>Doanh thu: %{value:,.2f}<br>Tỷ trọng: %{percent}<extra></extra>"
+            )
+            sales_donut.update_layout(
+                height=270, font=dict(family="Nunito, Segoe UI, sans-serif"),
+                paper_bgcolor="#fffdf9", margin=dict(l=4, r=4, t=8, b=8),
+                legend=dict(orientation="h", y=-0.1, title_text="")
+            )
+            st.plotly_chart(sales_donut, use_container_width=True, key="category_sales_donut")
         with k2:
             bar(category_summary, "category", "profit", limit=3)
     st.markdown("#### Phân khúc và thị trường nổi bật")
