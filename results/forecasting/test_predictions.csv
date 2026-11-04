@@ -1,0 +1,73 @@
+﻿category,month,train_end,train_months,model,actual,predicted,role
+Furniture,2014-01-01,2013-12-01,36,seasonal_naive,69801.0,81806.0,baseline
+Furniture,2014-02-01,2014-01-01,37,seasonal_naive,57702.0,59121.0,baseline
+Furniture,2014-03-01,2014-02-01,38,seasonal_naive,89712.0,65320.0,baseline
+Furniture,2014-04-01,2014-03-01,39,seasonal_naive,70574.0,54588.0,baseline
+Furniture,2014-05-01,2014-04-01,40,seasonal_naive,98308.0,74441.0,baseline
+Furniture,2014-06-01,2014-05-01,41,seasonal_naive,136157.0,115252.0,baseline
+Furniture,2014-07-01,2014-06-01,42,seasonal_naive,82366.0,71865.0,baseline
+Furniture,2014-08-01,2014-07-01,43,seasonal_naive,126283.0,112309.0,baseline
+Furniture,2014-09-01,2014-08-01,44,seasonal_naive,175775.0,127697.0,baseline
+Furniture,2014-10-01,2014-09-01,45,seasonal_naive,130697.0,89321.0,baseline
+Furniture,2014-11-01,2014-10-01,46,seasonal_naive,168854.0,122808.0,baseline
+Furniture,2014-12-01,2014-11-01,47,seasonal_naive,171832.0,143211.0,baseline
+Furniture,2014-01-01,2013-12-01,36,holt_winters,69801.0,83050.3209373176,selected
+Furniture,2014-02-01,2014-01-01,37,holt_winters,57702.0,71213.33550318322,selected
+Furniture,2014-03-01,2014-02-01,38,holt_winters,89712.0,82368.51583718846,selected
+Furniture,2014-04-01,2014-03-01,39,holt_winters,70574.0,74852.01578914064,selected
+Furniture,2014-05-01,2014-04-01,40,holt_winters,98308.0,88412.87433979003,selected
+Furniture,2014-06-01,2014-05-01,41,holt_winters,136157.0,120069.39064065948,selected
+Furniture,2014-07-01,2014-06-01,42,holt_winters,82366.0,77774.82747622121,selected
+Furniture,2014-08-01,2014-07-01,43,holt_winters,126283.0,118810.17455291131,selected
+Furniture,2014-09-01,2014-08-01,44,holt_winters,175775.0,136596.6226142423,selected
+Furniture,2014-10-01,2014-09-01,45,holt_winters,130697.0,116459.942460077,selected
+Furniture,2014-11-01,2014-10-01,46,holt_winters,168854.0,150423.14532007952,selected
+Furniture,2014-12-01,2014-11-01,47,holt_winters,171832.0,166779.29477655265,selected
+Office Supplies,2014-01-01,2013-12-01,36,seasonal_naive,76656.0,64990.0,baseline
+Office Supplies,2014-02-01,2014-01-01,37,seasonal_naive,55194.0,51557.0,baseline
+Office Supplies,2014-03-01,2014-02-01,38,seasonal_naive,77570.0,62008.0,baseline
+Office Supplies,2014-04-01,2014-03-01,39,seasonal_naive,81354.0,55777.0,baseline
+Office Supplies,2014-05-01,2014-04-01,40,seasonal_naive,97976.0,74706.0,baseline
+Office Supplies,2014-06-01,2014-05-01,41,seasonal_naive,120326.0,111483.0,baseline
+Office Supplies,2014-07-01,2014-06-01,42,seasonal_naive,76959.0,70290.0,baseline
+Office Supplies,2014-08-01,2014-07-01,43,seasonal_naive,155453.0,93139.0,baseline
+Office Supplies,2014-09-01,2014-08-01,44,seasonal_naive,134405.0,110767.0,baseline
+Office Supplies,2014-10-01,2014-09-01,45,seasonal_naive,115794.0,77402.0,baseline
+Office Supplies,2014-11-01,2014-10-01,46,seasonal_naive,163871.0,110736.0,baseline
+Office Supplies,2014-12-01,2014-11-01,47,seasonal_naive,150224.0,127938.0,baseline
+Office Supplies,2014-01-01,2013-12-01,36,holt_winters,76656.0,76466.05939381018,selected
+Office Supplies,2014-02-01,2014-01-01,37,holt_winters,55194.0,60729.94160788432,selected
+Office Supplies,2014-03-01,2014-02-01,38,holt_winters,77570.0,77440.52340648766,selected
+Office Supplies,2014-04-01,2014-03-01,39,holt_winters,81354.0,76166.83652480287,selected
+Office Supplies,2014-05-01,2014-04-01,40,holt_winters,97976.0,88461.40850920572,selected
+Office Supplies,2014-06-01,2014-05-01,41,holt_winters,120326.0,112729.06616753388,selected
+Office Supplies,2014-07-01,2014-06-01,42,holt_winters,76959.0,81779.09044744237,selected
+Office Supplies,2014-08-01,2014-07-01,43,holt_winters,155453.0,111160.0761275292,selected
+Office Supplies,2014-09-01,2014-08-01,44,holt_winters,134405.0,133838.14929980296,selected
+Office Supplies,2014-10-01,2014-09-01,45,holt_winters,115794.0,98872.2104807586,selected
+Office Supplies,2014-11-01,2014-10-01,46,holt_winters,163871.0,143101.2914747349,selected
+Office Supplies,2014-12-01,2014-11-01,47,holt_winters,150224.0,154141.3916525866,selected
+Technology,2014-01-01,2013-12-01,36,seasonal_naive,94810.0,52401.0,baseline
+Technology,2014-02-01,2014-01-01,37,seasonal_naive,71952.0,56569.0,baseline
+Technology,2014-03-01,2014-02-01,38,seasonal_naive,95828.0,71263.0,baseline
+Technology,2014-04-01,2014-03-01,39,seasonal_naive,90853.0,67470.0,baseline
+Technology,2014-05-01,2014-04-01,40,seasonal_naive,92120.0,111378.0,baseline
+Technology,2014-06-01,2014-05-01,41,seasonal_naive,145360.0,169778.0,baseline
+Technology,2014-07-01,2014-06-01,42,seasonal_naive,99393.0,87785.0,baseline
+Technology,2014-08-01,2014-07-01,43,seasonal_naive,174897.0,121043.0,baseline
+Technology,2014-09-01,2014-08-01,44,seasonal_naive,171006.0,138162.0,baseline
+Technology,2014-10-01,2014-09-01,45,seasonal_naive,176294.0,126700.0,baseline
+Technology,2014-11-01,2014-10-01,46,seasonal_naive,222587.0,140452.0,baseline
+Technology,2014-12-01,2014-11-01,47,seasonal_naive,181098.0,134327.0,baseline
+Technology,2014-01-01,2013-12-01,36,holt_winters,94810.0,80645.26953772974,selected
+Technology,2014-02-01,2014-01-01,37,holt_winters,71952.0,83350.14950986457,selected
+Technology,2014-03-01,2014-02-01,38,holt_winters,95828.0,101934.33709843001,selected
+Technology,2014-04-01,2014-03-01,39,holt_winters,90853.0,93653.83281718,selected
+Technology,2014-05-01,2014-04-01,40,holt_winters,92120.0,120917.01794663178,selected
+Technology,2014-06-01,2014-05-01,41,holt_winters,145360.0,148341.8592452477,selected
+Technology,2014-07-01,2014-06-01,42,holt_winters,99393.0,97337.29242172482,selected
+Technology,2014-08-01,2014-07-01,43,holt_winters,174897.0,142549.9659231345,selected
+Technology,2014-09-01,2014-08-01,44,holt_winters,171006.0,151775.65084753776,selected
+Technology,2014-10-01,2014-09-01,45,holt_winters,176294.0,140925.1118388846,selected
+Technology,2014-11-01,2014-10-01,46,holt_winters,222587.0,158967.71034571578,selected
+Technology,2014-12-01,2014-11-01,47,holt_winters,181098.0,217005.62877112985,selected
