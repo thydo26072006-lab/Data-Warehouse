@@ -15,6 +15,7 @@ from insights import customer_orders, customer_kpis, sales_lines
 EXAMPLES = [
     "Tổng doanh thu và lợi nhuận của Global Superstore là bao nhiêu?",
     "Doanh thu theo ngành hàng năm 2014?",
+    "Doanh thu cao nhất ở đâu?",
     "Thị trường nào có lợi nhuận cao nhất?",
     "Top 5 quốc gia có doanh thu cao nhất?",
     "Quốc gia nào có lợi nhuận thấp nhất?",
@@ -84,8 +85,12 @@ def answer_question(question, base_filters):
     profit = contains("loi nhuan", "profit", "sinh loi")
     discount = contains("chiet khau", "discount")
     customers = contains("khach hang", "customer", "phan khuc", "segment")
-    country = contains("quoc gia", "nuoc nao", "country")
-    market = contains("thi truong", "market", "khu vuc", "region")
+    # Location questions precede general KPI totals.
+    # Without a specified level, "ở đâu" uses country; explicit market uses markets.
+    market = contains("thi truong", "market", "khu vuc", "region", "vung nao")
+    where = contains("o dau", "noi nao", "cho nao", "tai dau", "dia diem nao",
+                     "where", "o quoc gia nao", "o nuoc nao")
+    country = contains("quoc gia", "nuoc nao", "country") or (where and not market)
     category = contains("nganh hang", "danh muc", "nhom san pham", "category", "san pham", "product")
     sales = contains("doanh thu", "sales", "ban hang")
     correlation = contains("tuong quan", "correlation", "pearson", "moi quan he")
