@@ -25,6 +25,37 @@ Star Schema 1 Fact + 5 Dimension, 6 FK; ETL, nạp lại và rollback; 12 truy v
 - **Kiểm thử:** bổ sung hai test giao diện/tích hợp vào `src/dashboard/check_dashboard.py`. Các test mới cần chạy với PostgreSQL cục bộ đã nạp dữ liệu, theo lệnh kiểm tra bên dưới.
 - **Phạm vi:** chưa huấn luyện mô hình mới, chưa thay đổi ETL, Star Schema, 12 truy vấn nguồn và giá trị dự báo tháng 01/2015. Dự báo là toàn thị trường và không chịu bộ lọc OLAP. Không suy diễn chu kỳ kinh tế 4 năm từ 48 tháng dữ liệu.
 
+## Cập nhật 04/11/2026 — Giao diện và phân tích DSS mở rộng
+
+- Giao diện nền sáng xanh/kem, nhấn cam; bổ sung donut và bar chart tổng quan; các thẻ KPI tự điều chỉnh cỡ chữ.
+- Bản đồ doanh thu/biên lợi nhuận theo quốc gia trên thế giới hoặc tiểu bang Hoa Kỳ (Plotly; cần cài lại requirements).
+- Heatmap Category × Market có chọn năm 2011–2014 và toàn giai đoạn; vẫn chịu bộ lọc chung.
+- Tỷ lệ dòng bán hàng bị lỗ theo mức chiết khấu, tính từ `loss_lines/sales_lines` trong OLAP 12.
+- Khách hàng mới/quay lại, tỷ lệ mua lặp, khách không hoạt động theo 3/6/12 tháng; cơ cấu khách Consumer, Corporate, Home Office.
+- Tương quan Pearson: doanh thu–lợi nhuận, chiết khấu–lợi nhuận, doanh thu–chiết khấu. Hệ số tính trên toàn bộ dòng lọc; scatter chỉ lấy mẫu để hiển thị.
+- Tự động nhận xét chẩn đoán sai số dự báo trên năm 2014; không thay đổi mô hình và file dự báo.
+- Cảnh báo: khách không hoạt động là *churn proxy*, không phải quan sát thực tế khách rời bỏ. Không coi tương quan là quan hệ nhân quả.
+- Nguồn truy vấn mới: `src/dashboard/insights.py`; hướng dẫn hình ảnh và nội dung báo cáo tại `results/report/dashboard_analytics_addendum.md`.
+
+**Cập nhật bản tải về trên Windows (CMD trong thư mục gốc của project):**
+
+Nếu project được `git clone`, dùng `git checkout import/btl-khodl` và `git pull origin import/btl-khodl`. Nếu tải ZIP, tải ZIP mới của nhánh hoặc thay đồng thời `src/dashboard/app.py`, `src/dashboard/insights.py`, `src/dashboard/check_dashboard.py` và `src/dashboard/requirements.txt`. Chỉ thay `app.py` là chưa đủ.
+
+```cmd
+py -m pip install -r src/dashboard/requirements.txt
+set "SUPERSTORE_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/superstore_dw"
+set "PGPASSFILE=%TEMP%\pgpass-superstore.conf"
+py -m streamlit run src/dashboard/app.py
+```
+
+Chạy kiểm thử ở CMD khác (thiết lập lại các biến môi trường):
+
+```cmd
+py src/dashboard/check_dashboard.py
+```
+
+Các bài test mới **chưa được xác nhận PASS** trên máy người nhận. Nên kiểm tra lại dữ liệu PostgreSQL cục bộ và lưu ảnh minh chứng sau khi chạy.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
