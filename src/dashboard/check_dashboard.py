@@ -82,6 +82,12 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Heatmap biên lợi nhuận: ngành hàng × thị trường",
                       [x.value for x in app.subheader])
+        year_selector = next(x for x in app.selectbox if x.key == "heatmap_year")
+        self.assertEqual(year_selector.value, "Toàn giai đoạn")
+        self.assertEqual(list(year_selector.options), ["Toàn giai đoạn", 2011, 2012, 2013, 2014])
+        year_selector.set_value(2014).run()
+        self.assert_clean(app)
+        self.assertEqual(next(x for x in app.selectbox if x.key == "heatmap_year").value, 2014)
         app.selectbox[0].set_value("Furniture").run()
         app.selectbox[1].set_value("Tables").run()
         self.assert_clean(app)
