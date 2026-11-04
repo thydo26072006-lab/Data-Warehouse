@@ -143,6 +143,7 @@ class DashboardChecks(unittest.TestCase):
         segments = segment_breakdown(orders, self.filters[0], self.filters[1])
         self.assertGreater(k["active"], 0)
         self.assertEqual(k["active"], k["new"] + k["returning"])
+        self.assertAlmostEqual(k["returning_pct"], 100 * k["returning"] / k["active"], places=6)
         self.assertLessEqual(k["repeat"], k["active"])
         self.assertLessEqual(k["inactive"], k["previous"])
         self.assertEqual(int(segments.customers.sum()), k["active"])
@@ -155,6 +156,7 @@ class DashboardChecks(unittest.TestCase):
                       [x.value for x in app.subheader])
         self.assertIn("Phân tích tương quan giữa các chỉ tiêu",
                       [x.value for x in app.subheader])
+        self.assertIn("Tỷ lệ khách hàng quay lại", [m.label for m in app.metric])
         self.assertIn("Rủi ro lợi nhuận theo mức chiết khấu",
                       [x.value for x in app.subheader])
 
@@ -174,6 +176,12 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Bản đồ doanh thu và biên lợi nhuận theo địa lý",
                       [x.value for x in app.subheader])
+        self.assertIn("Boxplot doanh thu theo thị trường và ngành hàng",
+                      [x.value for x in app.subheader])
+        boxplot = next(x for x in app.radio if x.key == "sales_boxplot_mode")
+        self.assertEqual(boxplot.value, "Theo thị trường")
+        boxplot.set_value("Theo ngành hàng").run()
+        self.assert_clean(app)
 
     def test_stale_forecast_is_hidden(self):
         app = self.app()
