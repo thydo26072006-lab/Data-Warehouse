@@ -479,7 +479,93 @@ def customers(filters):
     if corr_scope in ("discount_below_10", "discount_above_10"):
         st.caption("Dưới 10% nghĩa là discount < 10%; trên 10% nghĩa là discount > 10%. "
                    "Các giao dịch có chiết khấu đúng 10% không nằm trong hai nhóm này.")
-    st.markdown("#### Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?")
+    if corr.empty or corr.isna().all().all():
+        st.info("Không có đủ dữ liệu hoặc độ biến thiên để xây dựng ma trận tương quan.")
+    else:
+        names = corr.columns.tolist()
+        values = corr.to_numpy(dtype=float)
+        # Values are calculated on all filtered lines; absent correlations are shown as blank.
+        labels = [[f"{v:+.2f}" if pd.notna(v) else "" for v in row] for row in values]
+        fig_corr = go.Figure(go.Heatmap(
+            x=names, y=names, z=values, zmin=-1, zmax=1, zmid=0,
+            colorscale=[[0, "#b84c42"], [0.5, "#faf8f5"], [1, "#243e78"]],
+            text=labels, texttemplate="%{text}", textfont={"size": 13},
+            hovertemplate="%{y} × %{x}<br>Pearson r = %{z:.3f}<extra></extra>",
+            colorbar={"title": "r", "tickvals": [-1,-0.5,0,0.5,1]}
+        ))
+        fig_corr.update_layout(
+            height=630, margin=dict(l=15,r=15,t=35,b=90),
+            paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+            font=dict(family="Nunito, Segoe UI, sans-serif", size=13),
+            xaxis=dict(side="top", tickangle=-35, automargin=True),
+            yaxis=dict(autorange="reversed", automargin=True, scaleanchor="x", scaleratio=1)
+        )
+        st.plotly_chart(fig_corr, use_container_width=True, key="business_correlation_matrix")
+        st.caption(f"Đang hiển thị hệ số Pearson cho nhóm **{corr_scope_name}** "
+                   f"({number(observations)} dòng bán hàng tại {number(country_count)} quốc gia). "
+                   "Chọn nhóm khác để tính lại các hệ số từ đúng giao dịch của nhóm đó.")
+        st.caption("Pearson r từ -1 đến +1: âm là biến động ngược chiều, dương là cùng chiều, "
+                   "gần 0 là ít liên hệ tuyến tính. Đơn vị quan sát: từng dòng giao dịch. "
+                   "Các tỷ số lợi nhuận/đơn vị và biên lợi nhuận được tạo từ những biến "
+                   "khác nên có thể có tương quan mang tính toán học.")
+        pairs = [
+            ("Doanh thu", "Lợi nhuận"),
+            ("Chiết khấu (%)", "Lợi nhuận"),
+            ("Chiết khấu (%)", "Biên lợi nhuận (%)"),
+            ("Số lượng", "Lợi nhuận/đơn vị"),
+            ("Phí vận chuyển", "Doanh thu"),
+        ]
+        notes = []
+        for left_label, right_label in pairs:
+            r = corr.loc[left_label, right_label]
+            if pd.notna(r):
+                strength = ("rất yếu" if abs(r) < 0.2 else "yếu" if abs(r) < 0.4
+                            else "trung bình" if abs(r) < 0.6 else "khá mạnh" if abs(r) < 0.8
+                            else "mạnh")
+                direction = "cùng chiều" if r > 0 else "ngược chiều" if r < 0 else "không có"
+                notes.append(f"**{left_label} – {right_label}: r = {r:+.2f}**, "
+                             f"liên hệ tuyến tính {direction}, mức {strength}.")
+        if notes:
+            st.markdown("**Nhận xét các mối tương quan đáng chú ý**")
+            for note in notes:
+                st.markdown("- " + note)
+        if corr_scope in ("non_profitable", "discount_below_10", "discount_above_10"):
+            compared_scope = ("profitable" if corr_scope == "non_profitable" else
+                              "discount_above_10" if corr_scope == "discount_below_10" else
+                              "discount_below_10")
+            alt_corr, alt_rows, alt_countries = correlation_matrix(
+                lines_data, scope=compared_scope
+            )
+            if not alt_corr.empty:
+                compare_pairs = [
+                    ("Chiết khấu (%)", "Biên lợi nhuận (%)"),
+                    ("Chiết khấu (%)", "Lợi nhuận"),
+                    ("Doanh thu", "Lợi nhuận"),
+                    ("Số lượng", "Lợi nhuận/đơn vị"),
+                    ("Phí vận chuyển", "Lợi nhuận"),
+                ]
+                comparison = []
+                for a, b in compare_pairs:
+                    current_r, other_r = corr.loc[a, b], alt_corr.loc[a, b]
+                    if pd.notna(current_r) and pd.notna(other_r):
+                        comparison.append({
+                            "Cặp chỉ tiêu": a + " – " + b,
+                            "r nhóm đang xem": round(current_r, 3),
+                            "r nhóm đối chiếu": round(other_r, 3),
+                            "Chênh lệch r": round(current_r - other_r, 3),
+                        })
+                if comparison:
+                    st.markdown("**Đối chiếu hệ số giữa hai nhóm**")
+                    st.caption(f"Nhóm đối chiếu: {next(k for k, v in CORRELATION_SCOPES.items() if v == compared_scope)} "
+                               f"({number(alt_rows)} dòng tại {number(alt_countries)} quốc gia).")
+                    st.dataframe(pd.DataFrame(comparison), hide_index=True, use_container_width=True)
+                    st.caption("Chênh lệch hệ số r cho thấy mô hình liên hệ có thể khác nhau "
+                               "giữa hai nhóm, không phải ước lượng tác động do phân nhóm.")
+        with st.expander("Xem bảng hệ số tương quan"):
+            st.dataframe(corr.round(3), use_container_width=True)
+
+    st.subheader("Chẩn đoán lợi nhuận theo quốc gia")
+    st.markdown("**Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?**")
     country_summary = country_performance(lines_data, scope=corr_scope)
     if country_summary.empty:
         st.info("Không có quốc gia nào trong nhóm và phạm vi phân tích hiện tại.")
@@ -555,87 +641,6 @@ def customers(filters):
             st.caption("Có thể tìm hiểu các ngành hàng đóng góp lợi nhuận và tính bền vững "
                        "của kết quả trước khi quyết định mở rộng kinh doanh.")
 
-    if corr.empty or corr.isna().all().all():
-        st.info("Không có đủ dữ liệu hoặc độ biến thiên để xây dựng ma trận tương quan.")
-    else:
-        names = corr.columns.tolist()
-        values = corr.to_numpy(dtype=float)
-        # Values are calculated on all filtered lines; absent correlations are shown as blank.
-        labels = [[f"{v:+.2f}" if pd.notna(v) else "" for v in row] for row in values]
-        fig_corr = go.Figure(go.Heatmap(
-            x=names, y=names, z=values, zmin=-1, zmax=1, zmid=0,
-            colorscale=[[0, "#b84c42"], [0.5, "#faf8f5"], [1, "#243e78"]],
-            text=labels, texttemplate="%{text}", textfont={"size": 13},
-            hovertemplate="%{y} × %{x}<br>Pearson r = %{z:.3f}<extra></extra>",
-            colorbar={"title": "r", "tickvals": [-1,-0.5,0,0.5,1]}
-        ))
-        fig_corr.update_layout(
-            height=630, margin=dict(l=15,r=15,t=35,b=90),
-            paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
-            font=dict(family="Nunito, Segoe UI, sans-serif", size=13),
-            xaxis=dict(side="top", tickangle=-35, automargin=True),
-            yaxis=dict(autorange="reversed", automargin=True, scaleanchor="x", scaleratio=1)
-        )
-        st.plotly_chart(fig_corr, use_container_width=True, key="business_correlation_matrix")
-        st.caption("Pearson r từ -1 đến +1: âm là biến động ngược chiều, dương là cùng chiều, "
-                   "gần 0 là ít liên hệ tuyến tính. Đơn vị quan sát: từng dòng giao dịch. "
-                   "Các tỷ số lợi nhuận/đơn vị và biên lợi nhuận được tạo từ những biến "
-                   "khác nên có thể có tương quan mang tính toán học.")
-        pairs = [
-            ("Doanh thu", "Lợi nhuận"),
-            ("Chiết khấu (%)", "Lợi nhuận"),
-            ("Chiết khấu (%)", "Biên lợi nhuận (%)"),
-            ("Số lượng", "Lợi nhuận/đơn vị"),
-            ("Phí vận chuyển", "Doanh thu"),
-        ]
-        notes = []
-        for left_label, right_label in pairs:
-            r = corr.loc[left_label, right_label]
-            if pd.notna(r):
-                strength = ("rất yếu" if abs(r) < 0.2 else "yếu" if abs(r) < 0.4
-                            else "trung bình" if abs(r) < 0.6 else "khá mạnh" if abs(r) < 0.8
-                            else "mạnh")
-                direction = "cùng chiều" if r > 0 else "ngược chiều" if r < 0 else "không có"
-                notes.append(f"**{left_label} – {right_label}: r = {r:+.2f}**, "
-                             f"liên hệ tuyến tính {direction}, mức {strength}.")
-        if notes:
-            st.markdown("**Nhận xét các mối tương quan đáng chú ý**")
-            for note in notes:
-                st.markdown("- " + note)
-        if corr_scope in ("non_profitable", "discount_below_10", "discount_above_10"):
-            compared_scope = ("profitable" if corr_scope == "non_profitable" else
-                              "discount_above_10" if corr_scope == "discount_below_10" else
-                              "discount_below_10")
-            alt_corr, alt_rows, alt_countries = correlation_matrix(
-                lines_data, scope=compared_scope
-            )
-            if not alt_corr.empty:
-                compare_pairs = [
-                    ("Chiết khấu (%)", "Biên lợi nhuận (%)"),
-                    ("Chiết khấu (%)", "Lợi nhuận"),
-                    ("Doanh thu", "Lợi nhuận"),
-                    ("Số lượng", "Lợi nhuận/đơn vị"),
-                    ("Phí vận chuyển", "Lợi nhuận"),
-                ]
-                comparison = []
-                for a, b in compare_pairs:
-                    current_r, other_r = corr.loc[a, b], alt_corr.loc[a, b]
-                    if pd.notna(current_r) and pd.notna(other_r):
-                        comparison.append({
-                            "Cặp chỉ tiêu": a + " – " + b,
-                            "r nhóm đang xem": round(current_r, 3),
-                            "r nhóm đối chiếu": round(other_r, 3),
-                            "Chênh lệch r": round(current_r - other_r, 3),
-                        })
-                if comparison:
-                    st.markdown("**Đối chiếu hệ số giữa hai nhóm**")
-                    st.caption(f"Nhóm đối chiếu: {next(k for k, v in CORRELATION_SCOPES.items() if v == compared_scope)} "
-                               f"({number(alt_rows)} dòng tại {number(alt_countries)} quốc gia).")
-                    st.dataframe(pd.DataFrame(comparison), hide_index=True, use_container_width=True)
-                    st.caption("Chênh lệch hệ số r cho thấy mô hình liên hệ có thể khác nhau "
-                               "giữa hai nhóm, không phải ước lượng tác động do phân nhóm.")
-        with st.expander("Xem bảng hệ số tương quan"):
-            st.dataframe(corr.round(3), use_container_width=True)
     st.subheader("Biểu đồ phân tán cho từng cặp biến")
     pair_options = {
         "Doanh thu và lợi nhuận": ("sales", "profit"),
