@@ -629,9 +629,6 @@ def chat_page(filters):
     st.subheader("Trợ lý hỏi đáp Global Superstore")
     st.caption("Khám phá doanh thu, lợi nhuận, sản phẩm, thị trường và khách hàng "
                "từ dữ liệu Global Superstore 2011–2014. Kết quả theo bộ lọc ở thanh bên trái.")
-    with st.expander("Các câu hỏi được hỗ trợ", expanded=False):
-        for example in CHAT_EXAMPLES:
-            st.markdown("- " + example)
     current_scope = (str(filters[0]), str(filters[1]), filters[2], filters[3])
     if st.session_state.get("chat_scope") != current_scope:
         st.session_state["chat_scope"] = current_scope
