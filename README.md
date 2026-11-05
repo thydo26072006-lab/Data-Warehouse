@@ -93,6 +93,20 @@ Mỗi nhóm có ma trận Pearson 7 biến với nhãn số trong từng ô, s�
 
 Đây là so sánh *tương quan* trên từng dòng bán hàng, không có cơ sở kết luận *nguyên nhân* lợi nhuận hoặc doanh thu thay đổi. Tương quan của các tỷ số tạo từ biến gốc (biên lợi nhuận, lợi nhuận/đơn vị) cần diễn giải đặc biệt thận trọng. Kiểm thử mới đã được bổ sung vào `check_dashboard.py`, nhưng phải chạy trên PostgreSQL thực để xác nhận kết quả.
 
+## Sửa kỳ phân tích hành vi khách hàng 3/6/12 tháng (05/11/2026)
+
+Trang **Khách hàng & đơn hàng** có bộ chọn **Khoảng thời gian phân tích hành vi khách hàng**. Nó tác động trực tiếp tới các KPI: khách hoạt động, mới, quay lại, tỷ lệ quay lại, tỷ lệ mua lặp trong kỳ, khách không hoạt động, tỷ lệ không hoạt động; đồng thời tác động tới bảng và donut cơ cấu phân khúc. Các biểu đồ vận chuyển, chiết khấu, tương quan phía dưới tiếp tục theo bộ lọc chung ở thanh bên trái.
+
+Cửa sổ 3/6/12 tháng được tính lùi từ ngày kết thúc lựa chọn ở sidebar và giới hạn không sớm hơn ngày bắt đầu sidebar. Chẳng hạn nếu sidebar chọn đến 12/2014, 3 tháng là 10–12/2014, 6 tháng là 7–12/2014 và 12 tháng là 1–12/2014. `customer_orders` vẫn lấy lịch sử mua **trước cửa sổ**, trong phạm vi thị trường/ngành hàng đang lọc, để phân biệt khách mới và quay lại. Với toàn kỳ 2011–2014, không thể khẳng định khách đầu kỳ hoàn toàn mới đối với cửa hàng vì không có lịch sử trước 2011.
+
+- Khách mới: lần đầu có giao dịch được ghi nhận thuộc cửa sổ.
+- Khách quay lại: có lịch sử mua trước cửa sổ và mua tiếp trong cửa sổ.
+- Tỷ lệ quay lại: khách quay lại / khách hoạt động trong cửa sổ.
+- Tỷ lệ mua lặp: khách có ít nhất hai đơn hàng riêng trong cửa sổ / khách hoạt động trong cửa sổ.
+- Chỉ số không hoạt động: khách đã từng mua trước cửa sổ nhưng không mua trong cửa sổ / tổng khách từng mua trước cửa sổ. Đây không phải quan sát churn thực sự.
+
+Kiểm thử `test_customer_rolling_windows_change_kpis` xác nhận KPI thay đổi theo kỳ trên dữ liệu mẫu có kiểm soát và kiểm tra bộ chọn UI, nhưng vẫn cần chạy trên PostgreSQL thực để đánh giá bản triển khai.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
