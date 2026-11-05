@@ -10,7 +10,7 @@ import psycopg
 from streamlit.testing.v1 import AppTest
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
-from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales
+from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales, correlation_matrix
 from chatbot import answer_question, normalize
 
 
@@ -167,6 +167,19 @@ class DashboardChecks(unittest.TestCase):
         self.assertEqual(len(rows), overview.sales_lines)
         self.assertAlmostEqual(rows.sales.sum(), overview.sales, places=4)
         self.assertTrue(rows.discount.between(0, 1).all())
+        self.assertTrue({"country", "shipping_cost"}.issubset(rows.columns))
+        corr, n_rows, n_countries = correlation_matrix(rows)
+        self.assertEqual(n_rows, len(rows))
+        self.assertEqual(n_countries, rows.country.nunique())
+        self.assertEqual(corr.shape, (7, 7))
+        self.assertAlmostEqual(float(corr.loc["Doanh thu", "Doanh thu"]), 1.0)
+        self.assertAlmostEqual(float(corr.loc["Doanh thu", "Lợi nhuận"]),
+                               float(rows.sales.corr(rows.profit)), places=9)
+        profitable, prof_rows, prof_countries = correlation_matrix(rows, True)
+        profitable_countries = rows.groupby("country").profit.sum()
+        self.assertEqual(prof_countries, int(profitable_countries.gt(0).sum()))
+        self.assertLessEqual(prof_rows, len(rows))
+        self.assertEqual(profitable.shape, (7, 7))
         states = state_sales(self.filters)
         us = olap("05_geography", self.filters)
         us = us.loc[us.country.eq("United States")]
@@ -221,6 +234,16 @@ class DashboardChecks(unittest.TestCase):
         self.assertIn("Trợ lý hỏi đáp Global Superstore",
                       [x.value for x in app.subheader])
         self.assertGreaterEqual(len(app.chat_input), 1)
+
+    def test_pearson_matrix_visible_for_profitable_countries(self):
+        app = self.app()
+        app.sidebar.radio[0].set_value("Khách hàng & đơn hàng").run()
+        self.assert_clean(app)
+        self.assertIn("Ma trận tương quan các chỉ tiêu kinh doanh",
+                      [x.value for x in app.subheader])
+        profitable_only = next(x for x in app.checkbox if x.key == "corr_profitable_countries")
+        profitable_only.set_value(True).run()
+        self.assert_clean(app)
 
     def test_stale_forecast_is_hidden(self):
         app = self.app()
