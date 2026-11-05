@@ -76,6 +76,15 @@ Các bài test mới **chưa được xác nhận PASS** trên máy người nh�
 - Chưa chạy lại kiểm thử trên PostgreSQL thực của người nhận. Cần chạy `py -u src/dashboard/check_dashboard.py` (bài kiểm thử mới cho chatbot), đồng thời kiểm tra trực quan nhãn % trên trình duyệt.
 - Nếu dùng ZIP hoặc đồng bộ thủ công, **phải thêm cả chatbot.py** vào thư mục `src/dashboard` trước khi chạy Streamlit. Không cần cài thêm dependency.
 
+## Ma trận tương quan Pearson mở rộng (05/11/2026)
+
+- Trang **Khách hàng & đơn hàng** có ma trận Pearson chú thích từng ô: doanh thu, lợi nhuận, số lượng, chiết khấu (%), phí vận chuyển, lợi nhuận/đơn vị và biên lợi nhuận (%).
+- Tính trên **dòng giao dịch** từ PostgreSQL, theo khoảng thời gian, thị trường và ngành hàng đang chọn. Không lấy hệ số trong ảnh mẫu làm số liệu của nhóm.
+- Có checkbox **Chỉ phân tích các quốc gia có tổng lợi nhuận dương**. Số nước được tính động theo dữ liệu đã lọc, không gán cứng là 117.
+- Giá trị `r` và nhận xét về các cặp quan trọng được sinh từ số liệu hiện hành. Tương quan không phải quan hệ nhân quả; chỉ số tỷ số được tạo từ biến thành phần cần diễn giải thận trọng.
+- File thay đổi: `src/dashboard/insights.py`, `src/dashboard/app.py`, `src/dashboard/check_dashboard.py`. Không cần cài thêm thư viện.
+- Cần chạy lại `py -u src/dashboard/check_dashboard.py` với PostgreSQL thực để xác nhận tất cả tests sau cập nhật.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
