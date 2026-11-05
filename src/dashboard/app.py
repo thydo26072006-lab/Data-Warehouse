@@ -7,8 +7,9 @@ import pandas as pd
 import psycopg
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 
-from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales
+from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales, correlation_matrix
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
@@ -457,8 +458,70 @@ def customers(filters):
                "Mối liên hệ giữa chiết khấu và lợi nhuận là quan sát lịch sử, không chứng minh quan hệ nhân quả.")
     table(discount, "discount_analysis", "Chi tiết các mức chiết khấu")
 
-    st.subheader("Phân tích tương quan giữa các chỉ tiêu")
+    st.subheader("Ma trận tương quan các chỉ tiêu kinh doanh")
     lines_data = sales_lines(filters)
+    positive_only = st.checkbox(
+        "Chỉ phân tích các quốc gia có tổng lợi nhuận dương",
+        value=False, key="corr_profitable_countries",
+        help="Quốc gia sinh lời được xác định lại từ các giao dịch trong phạm vi bộ lọc hiện tại."
+    )
+    corr, observations, country_count = correlation_matrix(lines_data, positive_only)
+    st.caption(f"Dữ liệu phân tích: {number(observations)} dòng bán hàng tại "
+               f"{number(country_count)} quốc gia; số quốc gia được tính theo dữ liệu lọc, "
+               "không cố định là 117.")
+    if corr.empty or corr.isna().all().all():
+        st.info("Không có đủ dữ liệu hoặc độ biến thiên để xây dựng ma trận tương quan.")
+    else:
+        names = corr.columns.tolist()
+        values = corr.to_numpy(dtype=float)
+        # Values are calculated on all filtered lines; absent correlations are shown as blank.
+        labels = [[f"{v:+.2f}" if pd.notna(v) else "" for v in row] for row in values]
+        fig_corr = go.Figure(go.Heatmap(
+            x=names, y=names, z=values, zmin=-1, zmax=1, zmid=0,
+            colorscale=[[0, "#b84c42"], [0.5, "#faf8f5"], [1, "#243e78"]],
+            text=labels, texttemplate="%{text}", textfont={"size": 13},
+            hovertemplate="%{y} × %{x}<br>Pearson r = %{z:.3f}<extra></extra>",
+            colorbar={"title": "r", "tickvals": [-1,-0.5,0,0.5,1]}
+        ))
+        fig_corr.update_layout(
+            height=630, margin=dict(l=15,r=15,t=35,b=90),
+            paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+            font=dict(family="Nunito, Segoe UI, sans-serif", size=13),
+            xaxis=dict(side="top", tickangle=-35, automargin=True),
+            yaxis=dict(autorange="reversed", automargin=True, scaleanchor="x", scaleratio=1)
+        )
+        st.plotly_chart(fig_corr, use_container_width=True, key="business_correlation_matrix")
+        st.caption("Pearson r từ -1 đến +1: âm là biến động ngược chiều, dương là cùng chiều, "
+                   "gần 0 là ít liên hệ tuyến tính. Đơn vị quan sát: từng dòng giao dịch. "
+                   "Các tỷ số lợi nhuận/đơn vị và biên lợi nhuận được tạo từ những biến "
+                   "khác nên có thể có tương quan mang tính toán học.")
+        pairs = [
+            ("Doanh thu", "Lợi nhuận"),
+            ("Chiết khấu (%)", "Lợi nhuận"),
+            ("Chiết khấu (%)", "Biên lợi nhuận (%)"),
+            ("Số lượng", "Lợi nhuận/đơn vị"),
+            ("Phí vận chuyển", "Doanh thu"),
+        ]
+        notes = []
+        for left_label, right_label in pairs:
+            r = corr.loc[left_label, right_label]
+            if pd.notna(r):
+                strength = ("rất yếu" if abs(r) < 0.2 else "yếu" if abs(r) < 0.4
+                            else "trung bình" if abs(r) < 0.6 else "khá mạnh" if abs(r) < 0.8
+                            else "mạnh")
+                direction = "cùng chiều" if r > 0 else "ngược chiều" if r < 0 else "không có"
+                notes.append(f"**{left_label} – {right_label}: r = {r:+.2f}**, "
+                             f"liên hệ tuyến tính {direction}, mức {strength}.")
+        if notes:
+            st.markdown("**Nhận xét các mối tương quan đáng chú ý**")
+            for note in notes:
+                st.markdown("- " + note)
+        st.info("Ma trận giúp xác định mối liên hệ thống kê để ưu tiên phân tích, "
+                "**không kết luận các yếu tố là nguyên nhân làm tăng hoặc giảm lợi nhuận**. "
+                "Để đánh giá tác động nhân quả cần phương pháp nghiên cứu phù hợp.")
+        with st.expander("Xem bảng hệ số tương quan"):
+            st.dataframe(corr.round(3), use_container_width=True)
+    st.subheader("Biểu đồ phân tán cho từng cặp biến")
     pair_options = {
         "Doanh thu và lợi nhuận": ("sales", "profit"),
         "Chiết khấu và lợi nhuận": ("discount", "profit"),
