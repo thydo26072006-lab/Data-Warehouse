@@ -9,7 +9,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
-from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales, correlation_matrix
+from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
@@ -460,15 +460,18 @@ def customers(filters):
 
     st.subheader("Ma trận tương quan các chỉ tiêu kinh doanh")
     lines_data = sales_lines(filters)
-    positive_only = st.checkbox(
-        "Chỉ phân tích các quốc gia có tổng lợi nhuận dương",
-        value=False, key="corr_profitable_countries",
-        help="Quốc gia sinh lời được xác định lại từ các giao dịch trong phạm vi bộ lọc hiện tại."
+    corr_scope_name = st.selectbox(
+        "Chọn nhóm để phân tích ma trận",
+        list(CORRELATION_SCOPES), key="corr_scope"
     )
-    corr, observations, country_count = correlation_matrix(lines_data, positive_only)
-    st.caption(f"Dữ liệu phân tích: {number(observations)} dòng bán hàng tại "
-               f"{number(country_count)} quốc gia; số quốc gia được tính theo dữ liệu lọc, "
-               "không cố định là 117.")
+    corr_scope = CORRELATION_SCOPES[corr_scope_name]
+    corr, observations, country_count = correlation_matrix(lines_data, scope=corr_scope)
+    st.caption(f"Nhóm **{corr_scope_name}**: {number(observations)} dòng bán hàng tại "
+               f"{number(country_count)} quốc gia trong phạm vi bộ lọc hiện tại. "
+               "Quốc gia sinh lời có tổng lợi nhuận > 0; không sinh lời có tổng lợi nhuận ≤ 0.")
+    if corr_scope in ("discount_below_10", "discount_above_10"):
+        st.caption("Dưới 10% nghĩa là discount < 10%; trên 10% nghĩa là discount > 10%. "
+                   "Các giao dịch có chiết khấu đúng 10% không nằm trong hai nhóm này.")
     if corr.empty or corr.isna().all().all():
         st.info("Không có đủ dữ liệu hoặc độ biến thiên để xây dựng ma trận tương quan.")
     else:
@@ -516,6 +519,38 @@ def customers(filters):
             st.markdown("**Nhận xét các mối tương quan đáng chú ý**")
             for note in notes:
                 st.markdown("- " + note)
+        if corr_scope in ("non_profitable", "discount_below_10", "discount_above_10"):
+            compared_scope = ("profitable" if corr_scope == "non_profitable" else
+                              "discount_above_10" if corr_scope == "discount_below_10" else
+                              "discount_below_10")
+            alt_corr, alt_rows, alt_countries = correlation_matrix(
+                lines_data, scope=compared_scope
+            )
+            if not alt_corr.empty:
+                compare_pairs = [
+                    ("Chiết khấu (%)", "Biên lợi nhuận (%)"),
+                    ("Chiết khấu (%)", "Lợi nhuận"),
+                    ("Doanh thu", "Lợi nhuận"),
+                    ("Số lượng", "Lợi nhuận/đơn vị"),
+                    ("Phí vận chuyển", "Lợi nhuận"),
+                ]
+                comparison = []
+                for a, b in compare_pairs:
+                    current_r, other_r = corr.loc[a, b], alt_corr.loc[a, b]
+                    if pd.notna(current_r) and pd.notna(other_r):
+                        comparison.append({
+                            "Cặp chỉ tiêu": a + " – " + b,
+                            "r nhóm đang xem": round(current_r, 3),
+                            "r nhóm đối chiếu": round(other_r, 3),
+                            "Chênh lệch r": round(current_r - other_r, 3),
+                        })
+                if comparison:
+                    st.markdown("**Đối chiếu hệ số giữa hai nhóm**")
+                    st.caption(f"Nhóm đối chiếu: {next(k for k, v in CORRELATION_SCOPES.items() if v == compared_scope)} "
+                               f"({number(alt_rows)} dòng tại {number(alt_countries)} quốc gia).")
+                    st.dataframe(pd.DataFrame(comparison), hide_index=True, use_container_width=True)
+                    st.caption("Chênh lệch hệ số r cho thấy mô hình liên hệ có thể khác nhau "
+                               "giữa hai nhóm, không phải ước lượng tác động do phân nhóm.")
         st.info("Ma trận giúp xác định mối liên hệ thống kê để ưu tiên phân tích, "
                 "**không kết luận các yếu tố là nguyên nhân làm tăng hoặc giảm lợi nhuận**. "
                 "Để đánh giá tác động nhân quả cần phương pháp nghiên cứu phù hợp.")
