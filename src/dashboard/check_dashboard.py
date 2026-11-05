@@ -10,7 +10,7 @@ import psycopg
 from streamlit.testing.v1 import AppTest
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
-from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix
+from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, country_performance
 from chatbot import answer_question, normalize
 
 
@@ -209,6 +209,20 @@ class DashboardChecks(unittest.TestCase):
         corr, n_rows, n_countries = correlation_matrix(rows)
         self.assertEqual(n_rows, len(rows))
         self.assertEqual(n_countries, rows.country.nunique())
+        country_table = country_performance(rows)
+        self.assertEqual(len(country_table), n_countries)
+        self.assertAlmostEqual(country_table.sales.sum(), rows.sales.sum(), places=4)
+        self.assertAlmostEqual(country_table.profit.sum(), rows.profit.sum(), places=4)
+        self.assertEqual(int(country_table.sales_lines.sum()), len(rows))
+        self.assertEqual(int(country_table.loss_lines.sum()), int(rows.profit.lt(0).sum()))
+        self.assertEqual(set(country_table.status),
+                         set(country_table.profit.map(
+                             lambda x: "Sinh lời" if x > 0 else "Lỗ" if x < 0 else "Hòa vốn")))
+        for scope in ("profitable", "non_profitable", "discount_below_10", "discount_above_10"):
+            grouped = country_performance(rows, scope)
+            _, counted, n_country = correlation_matrix(rows, scope=scope)
+            self.assertEqual(int(grouped.sales_lines.sum()), counted)
+            self.assertEqual(len(grouped), n_country)
         self.assertEqual(corr.shape, (7, 7))
         self.assertAlmostEqual(float(corr.loc["Doanh thu", "Doanh thu"]), 1.0)
         self.assertAlmostEqual(float(corr.loc["Doanh thu", "Lợi nhuận"]),
@@ -292,6 +306,9 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Ma trận tương quan các chỉ tiêu kinh doanh",
                       [x.value for x in app.subheader])
+        self.assertIn("Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?",
+                      [x.value for x in app.subheader])
+        self.assertIn("corr_country_detail", [x.key for x in app.selectbox])
         selection = next(x for x in app.selectbox if x.key == "corr_scope")
         self.assertEqual(selection.value, "Toàn bộ dữ liệu")
         for name in ("Quốc gia sinh lời", "Quốc gia không sinh lời",
