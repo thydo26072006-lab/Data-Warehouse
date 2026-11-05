@@ -85,6 +85,14 @@ Các bài test mới **chưa được xác nhận PASS** trên máy người nh�
 - File thay đổi: `src/dashboard/insights.py`, `src/dashboard/app.py`, `src/dashboard/check_dashboard.py`. Không cần cài thêm thư viện.
 - Cần chạy lại `py -u src/dashboard/check_dashboard.py` với PostgreSQL thực để xác nhận tất cả tests sau cập nhật.
 
+## So sánh tương quan giữa các nhóm (05/11/2026)
+
+Trên trang **Khách hàng & đơn hàng → Ma trận tương quan các chỉ tiêu kinh doanh**, chọn một trong năm nhóm: Toàn bộ dữ liệu, Quốc gia sinh lời (tổng lợi nhuận > 0), Quốc gia không sinh lời (tổng lợi nhuận ≤ 0), Chiết khấu dưới 10% (discount < 0,10) hoặc Chiết khấu trên 10% (discount > 0,10). Giao dịch đúng 10% **không nằm trong hai nhóm chiết khấu**.
+
+Mỗi nhóm có ma trận Pearson 7 biến với nhãn số trong từng ô, số quốc gia và số dòng quan sát được tính thực tế từ PostgreSQL, nhận xét các cặp biến và bảng so sánh hệ số r với nhóm đối chiếu. Nhóm quốc gia sinh lời/không sinh lời được xác định theo **tổng lợi nhuận sau bộ lọc chung**; không giả định dữ liệu của nhóm có đúng 30 hoặc 117 quốc gia. Không sử dụng hệ số trong hình minh họa làm dữ liệu thật.
+
+Đây là so sánh *tương quan* trên từng dòng bán hàng, không có cơ sở kết luận *nguyên nhân* lợi nhuận hoặc doanh thu thay đổi. Tương quan của các tỷ số tạo từ biến gốc (biên lợi nhuận, lợi nhuận/đơn vị) cần diễn giải đặc biệt thận trọng. Kiểm thử mới đã được bổ sung vào `check_dashboard.py`, nhưng phải chạy trên PostgreSQL thực để xác nhận kết quả.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
