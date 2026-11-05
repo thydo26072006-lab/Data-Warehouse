@@ -96,29 +96,54 @@ CORRELATION_FIELDS = {
 }
 
 
-def correlation_dataset(rows, profitable_countries_only=False):
-    """Pearson input at transaction-line grain, not aggregated country totals.
+CORRELATION_SCOPES = {
+    "Toàn bộ dữ liệu": "all",
+    "Quốc gia sinh lời": "profitable",
+    "Quốc gia không sinh lời": "non_profitable",
+    "Chiết khấu dưới 10%": "discount_below_10",
+    "Chiết khấu trên 10%": "discount_above_10",
+}
 
-    The profitable-only scope keeps countries whose *total* filtered profit
-    is strictly positive; its count comes from actual warehouse rows.
-    Derived ratios remain NaN for invalid denominators.
+
+def correlation_dataset(rows, profitable_countries_only=False, scope=None):
+    """Return numeric features at sales-line grain and observed country count.
+
+    For legacy callers, profitable_countries_only=True selects profitable countries.
+    Country profitability is assessed on all currently filtered sales lines, then
+    all rows from matching countries are included in the group. The discount
+    scopes are strictly < 10% and > 10%; exact 10% belongs to neither.
     """
     frame = rows.copy()
-    if profitable_countries_only and not frame.empty:
+    selected = scope or ("profitable" if profitable_countries_only else "all")
+    if selected not in CORRELATION_SCOPES.values():
+        raise ValueError("Unsupported correlation scope")
+    if selected in ("profitable", "non_profitable") and not frame.empty:
         country_profit = frame.groupby("country", dropna=False)["profit"].sum()
-        valid_countries = country_profit[country_profit.gt(0)].index
-        frame = frame.loc[frame.country.isin(valid_countries)].copy()
+        if selected == "profitable":
+            selected_countries = country_profit[country_profit.gt(0)].index
+        else:
+            selected_countries = country_profit[country_profit.le(0)].index
+        frame = frame.loc[frame.country.isin(selected_countries)].copy()
+    elif selected == "discount_below_10":
+        frame = frame.loc[frame.discount.lt(0.10)].copy()
+    elif selected == "discount_above_10":
+        frame = frame.loc[frame.discount.gt(0.10)].copy()
+
     if frame.empty:
         return pd.DataFrame(columns=list(CORRELATION_FIELDS)), 0
+
     frame["discount_pct"] = frame["discount"] * 100
     frame["profit_per_unit"] = frame["profit"] / frame["quantity"].where(frame.quantity.ne(0))
     frame["margin_pct"] = 100 * frame["profit"] / frame["sales"].where(frame.sales.ne(0))
-    return frame[list(CORRELATION_FIELDS)].replace([float("inf"), float("-inf")], float("nan")), frame.country.nunique()
+    return (
+        frame[list(CORRELATION_FIELDS)].replace([float("inf"), float("-inf")], float("nan")),
+        frame.country.nunique(),
+    )
 
 
-def correlation_matrix(rows, profitable_countries_only=False):
+def correlation_matrix(rows, profitable_countries_only=False, scope=None):
     """Return labeled Pearson matrix, observation count and country count."""
-    numeric, countries = correlation_dataset(rows, profitable_countries_only)
+    numeric, countries = correlation_dataset(rows, profitable_countries_only, scope=scope)
     if len(numeric) < 2:
         return pd.DataFrame(), len(numeric), countries
     return numeric.corr(method="pearson", min_periods=2).rename(
