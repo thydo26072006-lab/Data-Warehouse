@@ -3,3 +3,4 @@ psycopg[binary]==3.3.6
 altair==6.3.0
 pandas==3.0.1
 plotly>=6.0,<7.0
+google-genai>=1.0,<2.0
