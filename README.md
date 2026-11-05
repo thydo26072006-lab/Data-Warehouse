@@ -119,6 +119,28 @@ Trang **Khách hàng & đơn hàng → Ma trận tương quan các chỉ tiêu k
 
 Đã bổ sung bài kiểm thử đối chiếu bảng quốc gia với tổng dòng bán hàng, doanh thu và lợi nhuận từ PostgreSQL. Chạy lại `py -u src/dashboard/check_dashboard.py` trên môi trường kết nối thật để xác nhận.
 
+## Gemini chatbot hỏi đáp Global Superstore (05/11/2026)
+
+Trang **Hỏi đáp dữ liệu** có hai chế độ:
+- Nếu `GEMINI_API_KEY` đã được lưu trong **Streamlit Secrets**, ứng dụng dùng Gemini để hiểu câu hỏi tiếng Việt tự nhiên, chọn hành động truy vấn được phép và duy trì ngữ cảnh một số lượt hội thoại.
+- Nếu không có key hoặc dịch vụ AI lỗi, chatbot quy tắc `chatbot.py` cũ vẫn hoạt động (nếu API lỗi sẽ thông báo chuyển chế độ).
+
+**Phạm vi và bảo mật:** Gemini nhận câu hỏi và tối đa bốn lượt hỏi đáp gần nhất, KHÔNG nhận mật khẩu Neon hoặc toàn bộ dữ liệu. AI chỉ lập kế hoạch từ danh sách thao tác cho phép. Python xác minh kế hoạch và chỉ sử dụng truy vấn OLAP có sẵn hay hàm `insights.py` để tính giá trị. Không chạy SQL do mô hình tạo. Câu hỏi vượt dữ liệu 2011–2014, ngoài kinh doanh Global Superstore, hoặc không thuộc công cụ sẵn có sẽ được từ chối. Các câu trả lời định lượng được tạo từ kết quả PostgreSQL (không để mô hình tự sáng tác). Đổi bộ lọc sidebar sẽ xóa lịch sử hội thoại hiển thị.
+
+**Cấu hình cho Streamlit Community Cloud:**
+1. Truy cập tài khoản API hợp lệ của bạn tại Google AI Studio; chỉ tạo API key nếu tài khoản đủ điều kiện, không bỏ qua kiểm tra tuổi/quyền truy cập.
+2. Streamlit Cloud → App → Settings → Secrets: **giữ nguyên** `SUPERSTORE_DATABASE_URL`, bổ sung các dòng:
+```toml
+GEMINI_API_KEY = "DAN_API_KEY_RIENG_CUA_BAN"
+GEMINI_MODEL = "gemini-2.5-flash"
+```
+3. Save, sau đó reboot hoặc redeploy nếu cần. `GEMINI_MODEL` có thể được đổi thành mã model Gemini có quyền truy cập thực tế. Không gửi key cho người khác hoặc đưa vào GitHub.
+4. App tự cài `google-genai` từ `src/dashboard/requirements.txt`. Nếu trên máy cá nhân, dùng `py -m pip install -r src/dashboard/requirements.txt` rồi cấu hình biến môi trường bí mật.
+5. Chạy thử các câu: "Doanh thu cao nhất ở đâu?", "Còn năm 2013?", "So sánh Turkey với Nigeria", "Lợi nhuận ở Turkey thế nào?", "Thời tiết ở đâu?" (phải từ chối).
+6. Có thể phát sinh giới hạn hoặc phí API tùy tài khoản và model. Không cần mở cổng PostgreSQL trên Windows. Nếu không đủ điều kiện dùng API, cứ giữ chatbot dự phòng; dashboard vẫn chạy.
+
+Các mã mới: `src/dashboard/ai_chatbot.py` (Gemini chỉ hiểu/định tuyến), `src/dashboard/app.py` (UI fallback), `src/dashboard/check_dashboard.py` (tests không gọi API thực). **Chưa xác nhận chạy API Gemini và PostgreSQL Neon đồng thời**; cần kiểm thử thực trên app sau khi cấu hình Secrets.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
