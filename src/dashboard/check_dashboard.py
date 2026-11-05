@@ -307,7 +307,7 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Ma trận tương quan các chỉ tiêu kinh doanh",
                       [x.value for x in app.subheader])
-        self.assertIn("Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?",
+        self.assertIn("Chẩn đoán lợi nhuận theo quốc gia",
                       [x.value for x in app.subheader])
         self.assertIn("corr_country_detail", [x.key for x in app.selectbox])
         selection = next(x for x in app.selectbox if x.key == "corr_scope")
@@ -316,6 +316,14 @@ class DashboardChecks(unittest.TestCase):
                      "Chiết khấu dưới 10%", "Chiết khấu trên 10%"):
             next(x for x in app.selectbox if x.key == "corr_scope").set_value(name).run()
             self.assert_clean(app)
+        # Ensure every scope is actually passed into Pearson computation.
+        rows = sales_lines(self.filters)
+        below, n_below, _ = correlation_matrix(rows, scope="discount_below_10")
+        above, n_above, _ = correlation_matrix(rows, scope="discount_above_10")
+        self.assertGreater(n_below, 0)
+        self.assertGreater(n_above, 0)
+        self.assertNotEqual(n_below, n_above)
+        self.assertFalse(below.equals(above))
 
     def test_ai_chatbot_deterministic_plans(self):
         # These tests never send a request to Gemini; only use the read-only DB.
