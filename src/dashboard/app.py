@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 
 from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES, country_performance, select_correlation_rows
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
+from ai_chatbot import configured as ai_configured, answer_ai
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
@@ -804,30 +805,45 @@ def forecasts():
 
 def chat_page(filters):
     st.subheader("Trợ lý hỏi đáp Global Superstore")
-    st.caption("Khám phá doanh thu, lợi nhuận, sản phẩm, thị trường và khách hàng "
-               "từ dữ liệu Global Superstore 2011–2014. Kết quả theo bộ lọc ở thanh bên trái.")
+    is_smart = ai_configured()
+    if is_smart:
+        st.caption("Hỏi bằng tiếng Việt tự nhiên về dữ liệu Global Superstore 2011–2014; "
+                   "trợ lý có thể hiểu câu hỏi nối tiếp. Số liệu được lấy trực tiếp từ PostgreSQL.")
+    else:
+        st.caption("Khám phá dữ liệu Global Superstore 2011–2014 theo bộ lọc bên trái. "
+                   "Chế độ hỏi đáp cơ bản đang hoạt động; có thể bật Gemini trong Streamlit Secrets.")
     current_scope = (str(filters[0]), str(filters[1]), filters[2], filters[3])
     if st.session_state.get("chat_scope") != current_scope:
         st.session_state["chat_scope"] = current_scope
         st.session_state["warehouse_chat"] = []
-    for item in st.session_state.get("warehouse_chat", []):
+    messages = st.session_state["warehouse_chat"]
+    for item in messages:
         with st.chat_message(item["role"]):
             st.markdown(item["text"])
             if item.get("table") is not None:
                 st.dataframe(item["table"], use_container_width=True, hide_index=True)
-    prompt = st.chat_input("Hỏi về doanh thu, lợi nhuận, thị trường, khách hàng...", max_chars=400)
+    prompt = st.chat_input("Hỏi về doanh thu, lợi nhuận, quốc gia, khách hàng...", max_chars=400)
     if prompt:
-        st.session_state["warehouse_chat"].append({"role": "user", "text": prompt})
+        history = [{"role": m["role"], "text": m["text"]} for m in messages[-8:]]
+        messages.append({"role": "user", "text": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
-        response, frame = answer_question(prompt, filters)
-        st.session_state["warehouse_chat"].append({
-            "role": "assistant", "text": response, "table": frame
-        })
         with st.chat_message("assistant"):
+            if is_smart:
+                try:
+                    with st.spinner("Đang phân tích câu hỏi và đối chiếu dữ liệu..."):
+                        response, frame = answer_ai(prompt, filters, history)
+                except Exception:
+                    # Never show API keys, provider URLs or exception text to visitors.
+                    st.caption("Dịch vụ AI tạm thời không phản hồi. Đang dùng bộ hỏi đáp cơ bản.")
+                    response, frame = answer_question(prompt, filters)
+            else:
+                response, frame = answer_question(prompt, filters)
             st.markdown(response)
             if frame is not None:
                 st.dataframe(frame, use_container_width=True, hide_index=True)
+            messages.append({"role": "assistant", "text": response, "table": frame})
+
 
 
 def main():
