@@ -9,7 +9,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
-from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES
+from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
@@ -380,25 +380,31 @@ def products(filters):
 def customers(filters):
     st.subheader("Phân khúc khách hàng và hành vi mua sắm")
     orders = customer_orders(filters)
-    lookback = st.selectbox("Khoảng thời gian đánh giá không hoạt động", [3, 6, 12],
+    lookback = st.selectbox("Khoảng thời gian phân tích hành vi khách hàng", [3, 6, 12],
                            index=2, format_func=lambda n: f"{n} tháng", key="customer_lookback")
-    kpis = customer_kpis(orders, filters[0], filters[1], lookback)
+    window_start, window_end = customer_window(filters[0], filters[1], lookback)
+    kpis = customer_kpis(orders, window_start, window_end, lookback)
+    st.caption(f"KPI và phân khúc khách hàng trong kỳ "
+               f"{pd.Timestamp(window_start):%m/%Y} – "
+               f"{(pd.Timestamp(window_end) - pd.Timedelta(days=1)):%m/%Y}; "
+               "lịch sử trước kỳ chỉ dùng để nhận diện khách hàng đã từng mua.")
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Khách hàng hoạt động", number(kpis["active"]))
     k2.metric("Khách hàng mới", number(kpis["new"]))
     k3.metric("Khách hàng quay lại", number(kpis["returning"]))
     k4.metric("Tỷ lệ khách hàng quay lại", number(kpis["returning_pct"], 2) + "%")
-    st.caption("Khách mới = có giao dịch đầu tiên trong phạm vi thị trường/ngành hàng trước ngày kết thúc, "
-               "và giao dịch đầu tiên thuộc kỳ đang chọn. Khách quay lại = đã giao dịch trước kỳ đang chọn. "
-               "Tỷ lệ khách quay lại = khách hoạt động đã từng mua trước kỳ / tổng khách hoạt động × 100%.")
+    st.caption("Khách mới = lần đầu xuất hiện trong lịch sử giao dịch quan sát và mua trong kỳ. "
+               "Khách quay lại = đã mua trước kỳ và tiếp tục mua trong kỳ. "
+               "Tỷ lệ khách quay lại = khách quay lại / khách hoạt động × 100%. "
+               "Khách mới ở đầu năm 2011 có thể đã mua trước thời gian dữ liệu ghi nhận.")
     p, q = st.columns(2)
-    p.metric(f"Khách không hoạt động {lookback} tháng", f'{number(kpis["inactive"])} / {number(kpis["previous"])}')
+    p.metric(f"Khách không hoạt động trong kỳ {lookback} tháng", f'{number(kpis["inactive"])} / {number(kpis["previous"])}')
     q.metric("Tỷ lệ không hoạt động (đại diện churn)", number(kpis["inactive_pct"], 2) + "%")
-    st.caption(f"Churn proxy: trong số khách từng mua trước {lookback} tháng gần nhất tính đến cuối kỳ lọc, "
-               f"bao nhiêu khách không có đơn hàng trong {lookback} tháng đó. Đây KHÔNG phải xác nhận "
-               "khách hàng thực sự rời bỏ; kết quả chịu ảnh hưởng bởi phạm vi thời gian và bộ lọc thị trường/ngành hàng. "
-               "Giai đoạn đầu 2011 còn chịu giới hạn thiếu lịch sử mua trước đó.")
-    segments = segment_breakdown(orders, filters[0], filters[1])
+    st.caption("Khách không hoạt động = khách từng mua trước kỳ nhưng không có giao dịch trong kỳ; "
+               "mẫu số là những khách đã mua trước kỳ. Đây chỉ là đại diện churn, không xác nhận "
+               "khách thực sự rời bỏ. Tất cả kết quả chịu giới hạn lịch sử bắt đầu từ 2011.")
+    st.metric("Tỷ lệ mua lặp trong kỳ (từ 2 đơn trở lên)", number(kpis["repeat_pct"], 2) + "%")
+    segments = segment_breakdown(orders, window_start, window_end)
     if not segments.empty:
         segments["segment_vi"] = segments.segment.map({
             "Consumer": "Cá nhân (Consumer)", "Corporate": "Doanh nghiệp (Corporate)",
