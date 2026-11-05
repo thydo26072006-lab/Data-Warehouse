@@ -633,9 +633,6 @@ def customers(filters):
                     st.dataframe(pd.DataFrame(comparison), hide_index=True, use_container_width=True)
                     st.caption("Chênh lệch hệ số r cho thấy mô hình liên hệ có thể khác nhau "
                                "giữa hai nhóm, không phải ước lượng tác động do phân nhóm.")
-        st.info("Ma trận giúp xác định mối liên hệ thống kê để ưu tiên phân tích, "
-                "**không kết luận các yếu tố là nguyên nhân làm tăng hoặc giảm lợi nhuận**. "
-                "Để đánh giá tác động nhân quả cần phương pháp nghiên cứu phù hợp.")
         with st.expander("Xem bảng hệ số tương quan"):
             st.dataframe(corr.round(3), use_container_width=True)
     st.subheader("Biểu đồ phân tán cho từng cặp biến")
