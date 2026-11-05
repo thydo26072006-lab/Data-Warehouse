@@ -180,6 +180,19 @@ class DashboardChecks(unittest.TestCase):
         self.assertEqual(prof_countries, int(profitable_countries.gt(0).sum()))
         self.assertLessEqual(prof_rows, len(rows))
         self.assertEqual(profitable.shape, (7, 7))
+        nonprofitable, nonprof_rows, nonprof_countries = correlation_matrix(
+            rows, scope="non_profitable"
+        )
+        self.assertEqual(nonprof_countries, int(profitable_countries.le(0).sum()))
+        self.assertEqual(prof_rows + nonprof_rows, len(rows))
+        self.assertEqual(nonprofitable.shape, (7, 7))
+        below, below_count, _ = correlation_matrix(rows, scope="discount_below_10")
+        above, above_count, _ = correlation_matrix(rows, scope="discount_above_10")
+        self.assertEqual(below_count, int(rows.discount.lt(0.1).sum()))
+        self.assertEqual(above_count, int(rows.discount.gt(0.1).sum()))
+        self.assertEqual(below_count + above_count + int(rows.discount.eq(0.1).sum()), len(rows))
+        self.assertEqual(below.shape, (7, 7))
+        self.assertEqual(above.shape, (7, 7))
         states = state_sales(self.filters)
         us = olap("05_geography", self.filters)
         us = us.loc[us.country.eq("United States")]
@@ -241,9 +254,12 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Ma trận tương quan các chỉ tiêu kinh doanh",
                       [x.value for x in app.subheader])
-        profitable_only = next(x for x in app.checkbox if x.key == "corr_profitable_countries")
-        profitable_only.set_value(True).run()
-        self.assert_clean(app)
+        selection = next(x for x in app.selectbox if x.key == "corr_scope")
+        self.assertEqual(selection.value, "Toàn bộ dữ liệu")
+        for name in ("Quốc gia sinh lời", "Quốc gia không sinh lời",
+                     "Chiết khấu dưới 10%", "Chiết khấu trên 10%"):
+            next(x for x in app.selectbox if x.key == "corr_scope").set_value(name).run()
+            self.assert_clean(app)
 
     def test_stale_forecast_is_hidden(self):
         app = self.app()
