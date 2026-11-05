@@ -12,6 +12,7 @@ from streamlit.testing.v1 import AppTest
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, country_performance
 from chatbot import answer_question, normalize
+from ai_chatbot import execute_plan, answer_ai
 
 
 class DashboardChecks(unittest.TestCase):
@@ -315,6 +316,56 @@ class DashboardChecks(unittest.TestCase):
                      "Chiết khấu dưới 10%", "Chiết khấu trên 10%"):
             next(x for x in app.selectbox if x.key == "corr_scope").set_value(name).run()
             self.assert_clean(app)
+
+    def test_ai_chatbot_deterministic_plans(self):
+        # These tests never send a request to Gemini; only use the read-only DB.
+        text, table = execute_plan({"action": "countries_rank",
+                                     "metric": "sales", "order": "highest",
+                                     "limit": 5}, self.filters)
+        self.assertIn("Quốc gia", text)
+        self.assertEqual(len(table), 5)
+        self.assertTrue(table.sales.iloc[0] >= table.sales.iloc[-1])
+        text, table = execute_plan({"action": "markets_rank",
+                                     "metric": "profit"}, self.filters)
+        self.assertIn("Thị trường", text)
+        self.assertIn("market", table.columns)
+        text, table = execute_plan({"action": "categories_rank",
+                                     "year": 2014}, self.filters)
+        self.assertEqual(len(table), 3)
+        text, table = execute_plan({"action": "compare_countries",
+                                     "countries": ["Turkey", "Nigeria"]}, self.filters)
+        self.assertEqual(len(table), 2)
+        text, table = execute_plan({"action": "country_detail",
+                                     "country": "Turkey"}, self.filters)
+        self.assertIn("Turkey", text)
+        self.assertEqual(len(table), 1)
+        text, table = execute_plan({"action": "customer_behavior",
+                                     "months": 3}, self.filters)
+        self.assertIn("khách quay lại", text)
+        self.assertIsNone(table)
+        text, table = execute_plan({"action": "correlation",
+                                     "pair": "discount_profit"}, self.filters)
+        self.assertIn("Pearson", text)
+        self.assertIsNone(table)
+        for plan in [{"action": "out_of_scope"},
+                     {"action": "countries_rank", "year": 2020},
+                     {"action": "DROP TABLE"}]:
+            text, table = execute_plan(plan, self.filters)
+            self.assertIsNone(table)
+            self.assertNotIn("12.642.905", text)
+
+    def test_ai_chatbot_key_free_fallback_and_routing(self):
+        # No API calls: deterministic planner stub proves the gateway contract.
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}, clear=False):
+            with patch("ai_chatbot.plan_with_gemini",
+                       return_value={"action": "countries_rank", "metric": "sales"}):
+                response, table = answer_ai("doanh thu cao nhất ở đâu", self.filters)
+                self.assertIn("Quốc gia", response)
+                self.assertIsNotNone(table)
+            with patch("ai_chatbot.plan_with_gemini",
+                       return_value={"action": "out_of_scope"}):
+                response, table = answer_ai("thời tiết hôm nay?", self.filters)
+                self.assertIsNone(table)
 
     def test_stale_forecast_is_hidden(self):
         app = self.app()
