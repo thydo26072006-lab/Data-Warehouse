@@ -1,0 +1,145 @@
+﻿category,month,sales
+Furniture,2011-01-01,34459.0
+Furniture,2011-02-01,30642.0
+Furniture,2011-03-01,44782.0
+Furniture,2011-04-01,31345.0
+Furniture,2011-05-01,44981.0
+Furniture,2011-06-01,78368.0
+Furniture,2011-07-01,31383.0
+Furniture,2011-08-01,69973.0
+Furniture,2011-09-01,95027.0
+Furniture,2011-10-01,77416.0
+Furniture,2011-11-01,90756.0
+Furniture,2011-12-01,127039.0
+Furniture,2012-01-01,42494.0
+Furniture,2012-02-01,37902.0
+Furniture,2012-03-01,55084.0
+Furniture,2012-04-01,54700.0
+Furniture,2012-05-01,62963.0
+Furniture,2012-06-01,81478.0
+Furniture,2012-07-01,41494.0
+Furniture,2012-08-01,84647.0
+Furniture,2012-09-01,96168.0
+Furniture,2012-10-01,84826.0
+Furniture,2012-11-01,120309.0
+Furniture,2012-12-01,96848.0
+Furniture,2013-01-01,81806.0
+Furniture,2013-02-01,59121.0
+Furniture,2013-03-01,65320.0
+Furniture,2013-04-01,54588.0
+Furniture,2013-05-01,74441.0
+Furniture,2013-06-01,115252.0
+Furniture,2013-07-01,71865.0
+Furniture,2013-08-01,112309.0
+Furniture,2013-09-01,127697.0
+Furniture,2013-10-01,89321.0
+Furniture,2013-11-01,122808.0
+Furniture,2013-12-01,143211.0
+Furniture,2014-01-01,69801.0
+Furniture,2014-02-01,57702.0
+Furniture,2014-03-01,89712.0
+Furniture,2014-04-01,70574.0
+Furniture,2014-05-01,98308.0
+Furniture,2014-06-01,136157.0
+Furniture,2014-07-01,82366.0
+Furniture,2014-08-01,126283.0
+Furniture,2014-09-01,175775.0
+Furniture,2014-10-01,130697.0
+Furniture,2014-11-01,168854.0
+Furniture,2014-12-01,171832.0
+Office Supplies,2011-01-01,33532.0
+Office Supplies,2011-02-01,22279.0
+Office Supplies,2011-03-01,34390.0
+Office Supplies,2011-04-01,46611.0
+Office Supplies,2011-05-01,46119.0
+Office Supplies,2011-06-01,65152.0
+Office Supplies,2011-07-01,41365.0
+Office Supplies,2011-08-01,56697.0
+Office Supplies,2011-09-01,102948.0
+Office Supplies,2011-10-01,48227.0
+Office Supplies,2011-11-01,94325.0
+Office Supplies,2011-12-01,83997.0
+Office Supplies,2012-01-01,47073.0
+Office Supplies,2012-02-01,24497.0
+Office Supplies,2012-03-01,53731.0
+Office Supplies,2012-04-01,43892.0
+Office Supplies,2012-05-01,61041.0
+Office Supplies,2012-06-01,75846.0
+Office Supplies,2012-07-01,46349.0
+Office Supplies,2012-08-01,97271.0
+Office Supplies,2012-09-01,78843.0
+Office Supplies,2012-10-01,59381.0
+Office Supplies,2012-11-01,99992.0
+Office Supplies,2012-12-01,107197.0
+Office Supplies,2013-01-01,64990.0
+Office Supplies,2013-02-01,51557.0
+Office Supplies,2013-03-01,62008.0
+Office Supplies,2013-04-01,55777.0
+Office Supplies,2013-05-01,74706.0
+Office Supplies,2013-06-01,111483.0
+Office Supplies,2013-07-01,70290.0
+Office Supplies,2013-08-01,93139.0
+Office Supplies,2013-09-01,110767.0
+Office Supplies,2013-10-01,77402.0
+Office Supplies,2013-11-01,110736.0
+Office Supplies,2013-12-01,127938.0
+Office Supplies,2014-01-01,76656.0
+Office Supplies,2014-02-01,55194.0
+Office Supplies,2014-03-01,77570.0
+Office Supplies,2014-04-01,81354.0
+Office Supplies,2014-05-01,97976.0
+Office Supplies,2014-06-01,120326.0
+Office Supplies,2014-07-01,76959.0
+Office Supplies,2014-08-01,155453.0
+Office Supplies,2014-09-01,134405.0
+Office Supplies,2014-10-01,115794.0
+Office Supplies,2014-11-01,163871.0
+Office Supplies,2014-12-01,150224.0
+Technology,2011-01-01,30911.0
+Technology,2011-02-01,38231.0
+Technology,2011-03-01,66554.0
+Technology,2011-04-01,38971.0
+Technology,2011-05-01,55662.0
+Technology,2011-06-01,71694.0
+Technology,2011-07-01,42770.0
+Technology,2011-08-01,80900.0
+Technology,2011-09-01,92255.0
+Technology,2011-10-01,73427.0
+Technology,2011-11-01,113418.0
+Technology,2011-12-01,122905.0
+Technology,2012-01-01,46208.0
+Technology,2012-02-01,38122.0
+Technology,2012-03-01,54277.0
+Technology,2012-04-01,62468.0
+Technology,2012-05-01,84366.0
+Technology,2012-06-01,98857.0
+Technology,2012-07-01,57404.0
+Technology,2012-08-01,121240.0
+Technology,2012-09-01,114379.0
+Technology,2012-10-01,108735.0
+Technology,2012-11-01,103211.0
+Technology,2012-12-01,134200.0
+Technology,2013-01-01,52401.0
+Technology,2013-02-01,56569.0
+Technology,2013-03-01,71263.0
+Technology,2013-04-01,67470.0
+Technology,2013-05-01,111378.0
+Technology,2013-06-01,169778.0
+Technology,2013-07-01,87785.0
+Technology,2013-08-01,121043.0
+Technology,2013-09-01,138162.0
+Technology,2013-10-01,126700.0
+Technology,2013-11-01,140452.0
+Technology,2013-12-01,134327.0
+Technology,2014-01-01,94810.0
+Technology,2014-02-01,71952.0
+Technology,2014-03-01,95828.0
+Technology,2014-04-01,90853.0
+Technology,2014-05-01,92120.0
+Technology,2014-06-01,145360.0
+Technology,2014-07-01,99393.0
+Technology,2014-08-01,174897.0
+Technology,2014-09-01,171006.0
+Technology,2014-10-01,176294.0
+Technology,2014-11-01,222587.0
+Technology,2014-12-01,181098.0
