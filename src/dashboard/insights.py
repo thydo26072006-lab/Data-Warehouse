@@ -67,7 +67,7 @@ def sales_lines(filters):
     """All filtered sales lines for exact line-level correlation coefficients."""
     where, params = filter_clause(*filters)
     return query(f"""
-        SELECT row_id, sales, profit, discount, quantity, market, category, sub_category
+        SELECT row_id, sales, profit, discount, quantity, shipping_cost, country, market, category, sub_category
         FROM dw.v_sales_analysis WHERE {where}
         ORDER BY row_id
     """, params)
@@ -83,3 +83,44 @@ def state_sales(filters):
         WHERE {where} AND country = 'United States'
         GROUP BY state ORDER BY sales DESC
     """, params)
+
+
+CORRELATION_FIELDS = {
+    "sales": "Doanh thu",
+    "profit": "Lợi nhuận",
+    "quantity": "Số lượng",
+    "discount_pct": "Chiết khấu (%)",
+    "shipping_cost": "Phí vận chuyển",
+    "profit_per_unit": "Lợi nhuận/đơn vị",
+    "margin_pct": "Biên lợi nhuận (%)",
+}
+
+
+def correlation_dataset(rows, profitable_countries_only=False):
+    """Pearson input at transaction-line grain, not aggregated country totals.
+
+    The profitable-only scope keeps countries whose *total* filtered profit
+    is strictly positive; its count comes from actual warehouse rows.
+    Derived ratios remain NaN for invalid denominators.
+    """
+    frame = rows.copy()
+    if profitable_countries_only and not frame.empty:
+        country_profit = frame.groupby("country", dropna=False)["profit"].sum()
+        valid_countries = country_profit[country_profit.gt(0)].index
+        frame = frame.loc[frame.country.isin(valid_countries)].copy()
+    if frame.empty:
+        return pd.DataFrame(columns=list(CORRELATION_FIELDS)), 0
+    frame["discount_pct"] = frame["discount"] * 100
+    frame["profit_per_unit"] = frame["profit"] / frame["quantity"].where(frame.quantity.ne(0))
+    frame["margin_pct"] = 100 * frame["profit"] / frame["sales"].where(frame.sales.ne(0))
+    return frame[list(CORRELATION_FIELDS)].replace([float("inf"), float("-inf")], float("nan")), frame.country.nunique()
+
+
+def correlation_matrix(rows, profitable_countries_only=False):
+    """Return labeled Pearson matrix, observation count and country count."""
+    numeric, countries = correlation_dataset(rows, profitable_countries_only)
+    if len(numeric) < 2:
+        return pd.DataFrame(), len(numeric), countries
+    return numeric.corr(method="pearson", min_periods=2).rename(
+        index=CORRELATION_FIELDS, columns=CORRELATION_FIELDS
+    ), len(numeric), countries
