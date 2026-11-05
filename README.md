@@ -107,6 +107,18 @@ Cửa sổ 3/6/12 tháng được tính lùi từ ngày kết thúc lựa chọn
 
 Kiểm thử `test_customer_rolling_windows_change_kpis` xác nhận KPI thay đổi theo kỳ trên dữ liệu mẫu có kiểm soát và kiểm tra bộ chọn UI, nhưng vẫn cần chạy trên PostgreSQL thực để đánh giá bản triển khai.
 
+## Quốc gia sinh lời / không sinh lời gắn với ma trận tương quan (05/11/2026)
+
+Trang **Khách hàng & đơn hàng → Ma trận tương quan các chỉ tiêu kinh doanh** nay có phần **Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?** ngay trước ma trận. Các thành phần:
+- KPI số quốc gia sinh lời, số quốc gia lỗ và hòa vốn.
+- Xếp hạng tối đa 10 quốc gia lỗ nhiều nhất và 10 quốc gia lời cao nhất theo **tổng lợi nhuận thực tế**.
+- Bảng tên **tất cả quốc gia** của nhóm đang chọn, kèm doanh thu, lợi nhuận, biên lợi nhuận, phí vận chuyển, chiết khấu trung bình, tỷ lệ dòng lỗ và trạng thái. Có thể tải CSV.
+- Chọn tên quốc gia để xem thêm tổng hợp lợi nhuận theo ngành hàng và gợi ý nội dung cần rà soát.
+- Bảng quốc gia chịu cùng phân nhóm như ma trận tương quan (tổng dữ liệu, sinh lời, không sinh lời, discount dưới 10% và trên 10%). Với phân nhóm chiết khấu, trạng thái **chỉ thuộc nhóm giao dịch được lọc**, không suy ra lời/lỗ toàn bộ hoạt động của nước đó.
+- Ma trận Pearson vẫn đo quan hệ giữa biến trên nhiều **dòng giao dịch**, không phải ma trận thể hiện danh sách quốc gia. Phân tích tương quan không đủ để kết luận tác động nhân quả.
+
+Đã bổ sung bài kiểm thử đối chiếu bảng quốc gia với tổng dòng bán hàng, doanh thu và lợi nhuận từ PostgreSQL. Chạy lại `py -u src/dashboard/check_dashboard.py` trên môi trường kết nối thật để xác nhận.
+
 ## Chạy trên máy người nhận
 
 Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
