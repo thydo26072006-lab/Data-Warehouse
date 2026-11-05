@@ -10,7 +10,7 @@ import psycopg
 from streamlit.testing.v1 import AppTest
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
-from insights import customer_orders, customer_kpis, segment_breakdown, sales_lines, state_sales, correlation_matrix
+from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix
 from chatbot import answer_question, normalize
 
 
@@ -155,11 +155,49 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Phân khúc khách hàng và hành vi mua sắm",
                       [x.value for x in app.subheader])
+        selector = next(x for x in app.selectbox if x.key == "customer_lookback")
+        self.assertEqual(selector.value, 12)
+        for months in (3, 6, 12):
+            next(x for x in app.selectbox if x.key == "customer_lookback").set_value(months).run()
+            self.assert_clean(app)
+        self.assertIn("Tỷ lệ mua lặp trong kỳ (từ 2 đơn trở lên)",
+                      [m.label for m in app.metric])
         self.assertIn("Phân tích tương quan giữa các chỉ tiêu",
                       [x.value for x in app.subheader])
         self.assertIn("Tỷ lệ khách hàng quay lại", [m.label for m in app.metric])
         self.assertIn("Rủi ro lợi nhuận theo mức chiết khấu",
                       [x.value for x in app.subheader])
+
+    def test_customer_rolling_windows_change_kpis(self):
+        # Controlled fixture establishes different counts without relying on live data.
+        end = pd.Timestamp("2015-01-01").date()
+        example = pd.DataFrame([
+            ("A", "2013-01-15", "a1"),
+            ("A", "2014-02-15", "a2"),
+            ("A", "2014-11-15", "a3"),
+            ("B", "2014-05-15", "b1"),
+            ("B", "2014-12-15", "b2"),
+            ("C", "2014-10-15", "c1"),
+            ("D", "2014-01-15", "d1"),
+            ("E", "2014-07-15", "e1"),
+            ("E", "2014-08-15", "e2"),
+            ("F", "2014-03-15", "f1"),
+        ], columns=["customer_id", "order_date", "order_id"])
+        observed = {}
+        for months in (3, 6, 12):
+            start, final = customer_window(pd.Timestamp("2011-01-01").date(), end, months)
+            self.assertEqual(final, end)
+            k = customer_kpis(example, start, final, months)
+            observed[months] = k
+            self.assertEqual(k["active"], k["new"] + k["returning"])
+            self.assertEqual(k["inactive"], k["previous"] - k["returning"])
+        self.assertEqual([observed[m]["active"] for m in (3,6,12)], [3,4,6])
+        self.assertEqual([observed[m]["returning"] for m in (3,6,12)], [2,2,1])
+        self.assertEqual([observed[m]["new"] for m in (3,6,12)], [1,2,5])
+        self.assertAlmostEqual(observed[3]["returning_pct"], 200/3)
+        self.assertNotEqual(observed[3]["returning_pct"], observed[12]["returning_pct"])
+        self.assertEqual(customer_window(pd.Timestamp("2014-09-01").date(), end, 12)[0],
+                         pd.Timestamp("2014-09-01").date())
 
     def test_line_level_correlation_and_us_map_source(self):
         rows = sales_lines(self.filters)
