@@ -137,7 +137,7 @@ def plan_with_gemini(question, history):
                 system_instruction=SYSTEM,
                 response_mime_type="application/json",
                 temperature=0,
-                max_output_tokens=420,
+                max_output_tokens=850,
             ),
         )
     raw = (answer.text or "").strip()
