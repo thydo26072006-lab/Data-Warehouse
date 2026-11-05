@@ -9,7 +9,7 @@ import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 
-from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES
+from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES, country_performance, select_correlation_rows
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
@@ -478,6 +478,82 @@ def customers(filters):
     if corr_scope in ("discount_below_10", "discount_above_10"):
         st.caption("Dưới 10% nghĩa là discount < 10%; trên 10% nghĩa là discount > 10%. "
                    "Các giao dịch có chiết khấu đúng 10% không nằm trong hai nhóm này.")
+    st.markdown("#### Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?")
+    country_summary = country_performance(lines_data, scope=corr_scope)
+    if country_summary.empty:
+        st.info("Không có quốc gia nào trong nhóm và phạm vi phân tích hiện tại.")
+    else:
+        n_profit = int(country_summary.profit.gt(0).sum())
+        n_loss = int(country_summary.profit.lt(0).sum())
+        n_break = int(country_summary.profit.eq(0).sum())
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Quốc gia sinh lời", number(n_profit))
+        c2.metric("Quốc gia bị lỗ", number(n_loss))
+        c3.metric("Quốc gia hòa vốn", number(n_break))
+        neg = country_summary.loc[country_summary.profit.lt(0)].nsmallest(10, "profit")
+        pos = country_summary.loc[country_summary.profit.gt(0)].nlargest(10, "profit")
+        left_c, right_c = st.columns(2)
+        with left_c:
+            st.markdown("**Quốc gia có tổng lỗ lớn nhất**")
+            if neg.empty:
+                st.caption("Không có quốc gia tổng lợi nhuận âm trong nhóm này.")
+            else:
+                bar(neg, "country", "profit", limit=10, ascending=True)
+        with right_c:
+            st.markdown("**Quốc gia có tổng lợi nhuận cao nhất**")
+            if pos.empty:
+                st.caption("Không có quốc gia tổng lợi nhuận dương trong nhóm này.")
+            else:
+                bar(pos, "country", "profit", limit=10)
+        display_countries = country_summary.rename(columns={
+            "country": "Quốc gia", "sales": "Doanh thu", "profit": "Lợi nhuận",
+            "shipping_cost": "Chi phí vận chuyển", "sales_lines": "Dòng bán hàng",
+            "loss_lines": "Dòng lỗ", "avg_discount_pct": "Chiết khấu TB (%)",
+            "margin_pct": "Biên lợi nhuận (%)", "loss_rate_pct": "Tỷ lệ dòng lỗ (%)",
+            "status": "Trạng thái"
+        })
+        st.markdown("**Bảng kết quả từng quốc gia (sắp từ lỗ lớn nhất đến lãi cao nhất)**")
+        st.dataframe(
+            display_countries.style.format({
+                "Doanh thu": "{:,.2f}", "Lợi nhuận": "{:,.2f}",
+                "Chi phí vận chuyển": "{:,.2f}", "Chiết khấu TB (%)": "{:.2f}",
+                "Biên lợi nhuận (%)": "{:.2f}", "Tỷ lệ dòng lỗ (%)": "{:.2f}"
+            }),
+            hide_index=True, use_container_width=True
+        )
+        st.download_button(
+            "Tải bảng quốc gia CSV",
+            country_summary.to_csv(index=False).encode("utf-8-sig"),
+            file_name="country_performance_" + corr_scope + ".csv",
+            mime="text/csv", key="download_corr_countries"
+        )
+        st.caption("Trạng thái dựa trên tổng lợi nhuận của các dòng trong nhóm đang chọn. "
+                   "Khi chọn chiết khấu dưới/trên 10%, chỉ tiêu phản ánh riêng các giao dịch "
+                   "ở mức chiết khấu đó, không phải kết quả toàn quốc gia.")
+        selection = st.selectbox("Xem chi tiết một quốc gia", country_summary.country.tolist(),
+                                index=0, key="corr_country_detail")
+        selected = country_summary.loc[country_summary.country.eq(selection)].iloc[0]
+        st.markdown(
+            f"**{selection} — {selected.status}:** doanh thu **{number(selected.sales, 2)}**, "
+            f"lợi nhuận **{number(selected.profit, 2)}**, biên lợi nhuận "
+            f"**{number(selected.margin_pct, 2)}%**, tỷ lệ dòng lỗ "
+            f"**{number(selected.loss_rate_pct, 2)}%**, chiết khấu trung bình "
+            f"**{number(selected.avg_discount_pct, 2)}%**."
+        )
+        scoped_lines = select_correlation_rows(lines_data, corr_scope)
+        details = (scoped_lines.loc[scoped_lines.country.eq(selection)]
+                   .groupby("category", as_index=False)[["sales", "profit"]].sum())
+        if not details.empty:
+            st.markdown("**Lợi nhuận theo ngành hàng tại quốc gia đã chọn**")
+            bar(details, "category", "profit", limit=3)
+        if selected.profit < 0:
+            st.caption("Ưu tiên rà soát các ngành hàng lỗ, tỷ lệ dòng lỗ và chính sách chiết khấu "
+                       "tại quốc gia này. Các chỉ số chỉ giúp xác định vấn đề để điều tra thêm, "
+                       "không chứng minh nguyên nhân gây lỗ.")
+        else:
+            st.caption("Có thể tìm hiểu các ngành hàng đóng góp lợi nhuận và tính bền vững "
+                       "của kết quả trước khi quyết định mở rộng kinh doanh.")
+
     if corr.empty or corr.isna().all().all():
         st.info("Không có đủ dữ liệu hoặc độ biến thiên để xây dựng ma trận tương quan.")
     else:
