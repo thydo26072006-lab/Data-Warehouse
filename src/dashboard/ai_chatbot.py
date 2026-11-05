@@ -13,6 +13,7 @@ from datetime import date
 import pandas as pd
 
 from data import olap
+from chatbot import intro_response
 from insights import (
     correlation_matrix,
     country_performance,
@@ -285,7 +286,12 @@ def answer_ai(question, filters, history=()):
     """Only the natural-language routing uses AI. Numeric results are deterministic."""
     if not configured():
         raise RuntimeError("GEMINI_API_KEY is not configured")
-    if not isinstance(question, str) or not (3 <= len(question.strip()) <= 400):
+    if not isinstance(question, str) or not (1 <= len(question.strip()) <= 400):
+        return "Vui lòng nhập câu hỏi từ 3 đến 400 ký tự.", None
+    introduction = intro_response(question)
+    if introduction is not None:
+        return introduction, None
+    if len(question.strip()) < 3:
         return "Vui lòng nhập câu hỏi từ 3 đến 400 ký tự.", None
     # Reject obviously unrelated/privileged requests before making an API call.
     q = _normalize(question)

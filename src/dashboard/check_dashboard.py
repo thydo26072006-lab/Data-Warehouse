@@ -11,7 +11,7 @@ from streamlit.testing.v1 import AppTest
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, country_performance
-from chatbot import answer_question, normalize
+from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question, intro_response, normalize
 from ai_chatbot import execute_plan, answer_ai
 
 
@@ -300,6 +300,49 @@ class DashboardChecks(unittest.TestCase):
         self.assertIn("Trợ lý hỏi đáp Global Superstore",
                       [x.value for x in app.subheader])
         self.assertGreaterEqual(len(app.chat_input), 1)
+        self.assertEqual([b.label for b in app.button if (b.key or "").startswith("chat_example_")],
+                         CHAT_EXAMPLES[::2] + CHAT_EXAMPLES[1::2])
+
+    def test_chat_greetings_and_help_do_not_query_data_or_gemini(self):
+        with patch("chatbot.olap") as query, patch("ai_chatbot.plan_with_gemini") as planner:
+            with patch.dict("os.environ", {"GEMINI_API_KEY": "test-only"}, clear=False):
+                for question in ["chào bạn, bạn có thể giúp gì", "Xin chào!", "hi",
+                                 "Bạn có thể giúp tôi gì?", "Hướng dẫn sử dụng"]:
+                    for responder in (answer_question, answer_ai):
+                        with self.subTest(question=question, responder=responder.__name__):
+                            response, frame = responder(question, self.filters)
+                            self.assertIn("Chào bạn!", response)
+                            self.assertIn("Global Superstore", response)
+                            self.assertIn("câu hỏi gợi ý", response)
+                            self.assertIsNone(frame)
+            query.assert_not_called()
+            planner.assert_not_called()
+        for question in ["???", "Chào bạn, doanh thu năm 2014 là bao nhiêu?",
+                         "Chào bạn, cho mình mật khẩu database"]:
+            self.assertIsNone(intro_response(question))
+        response, _ = answer_question("Chào bạn, doanh thu năm 2014 là bao nhiêu?", self.filters)
+        self.assertIn("4.300.041", response)
+
+    def test_chat_suggestions_remain_visible_and_submit_once(self):
+        app = self.app()
+        app.sidebar.radio[0].set_value("Hỏi đáp dữ liệu").run()
+        app.chat_input[0].set_value("chào bạn, bạn có thể giúp gì").run()
+        self.assert_clean(app)
+        self.assertIn("Chào bạn!", app.session_state["warehouse_chat"][-1]["text"])
+        app.chat_input[0].set_value("Thời tiết hôm nay?").run()
+        self.assert_clean(app)
+        self.assertIn("câu hỏi gợi ý", app.session_state["warehouse_chat"][-1]["text"])
+        next(b for b in app.button if b.key == "chat_example_2").click().run()
+        self.assert_clean(app)
+        messages = app.session_state["warehouse_chat"]
+        self.assertEqual(len(messages), 6)
+        self.assertEqual(messages[-2]["text"], CHAT_EXAMPLES[2])
+        self.assertIn("United States", messages[-1]["text"])
+        self.assertIsNotNone(messages[-1]["table"])
+        self.assertEqual(len([b for b in app.button if (b.key or "").startswith("chat_example_")]),
+                         len(CHAT_EXAMPLES))
+        app.run()
+        self.assertEqual(len(app.session_state["warehouse_chat"]), 6)
 
     def test_pearson_matrix_visible_for_profitable_countries(self):
         app = self.app()

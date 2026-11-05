@@ -47,6 +47,9 @@ h1,h2,h3 {color:var(--plum);letter-spacing:-.025em;font-weight:800;}
 h1 {font-size:2.2rem !important;}
 [data-testid="stSidebar"] h2 {color:var(--plum);}
 .stButton button[kind="primary"] {background:var(--pink);border-color:var(--pink);color:white;}
+.st-key-chat_suggestions button {height:auto;min-height:2.75rem;text-align:left;}
+.st-key-chat_suggestions .stMarkdownEllipsis,
+.st-key-chat_suggestions button p {white-space:normal;overflow:visible;text-overflow:clip;}
 div[data-testid="stVerticalBlock"] {row-gap:0.9rem;}
 </style>""", unsafe_allow_html=True)
 
@@ -830,32 +833,46 @@ def chat_page(filters):
         st.session_state["chat_scope"] = current_scope
         st.session_state["warehouse_chat"] = []
     messages = st.session_state["warehouse_chat"]
-    for item in messages:
-        with st.chat_message(item["role"]):
-            st.markdown(item["text"])
-            if item.get("table") is not None:
-                st.dataframe(item["table"], use_container_width=True, hide_index=True)
-    prompt = st.chat_input("Hỏi về doanh thu, lợi nhuận, quốc gia, khách hàng...", max_chars=400)
-    if prompt:
-        history = [{"role": m["role"], "text": m["text"]} for m in messages[-8:]]
-        messages.append({"role": "user", "text": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        with st.chat_message("assistant"):
-            if is_smart:
-                try:
-                    with st.spinner("Đang phân tích câu hỏi và đối chiếu dữ liệu..."):
-                        response, frame = answer_ai(prompt, filters, history)
-                except Exception:
-                    # Never show API keys, provider URLs or exception text to visitors.
-                    st.caption("Dịch vụ AI tạm thời không phản hồi. Đang dùng bộ hỏi đáp cơ bản.")
+    # Reserve the conversation above suggestions so new answers always precede them.
+    conversation = st.container()
+    suggested_prompt = None
+    with st.container(key="chat_suggestions"):
+        st.markdown("**Câu hỏi gợi ý**")
+        columns = st.columns(2)
+        for index, example in enumerate(CHAT_EXAMPLES):
+            if columns[index % 2].button(example, key=f"chat_example_{index}", width="stretch"):
+                suggested_prompt = example
+    typed_prompt = st.chat_input(
+        "Hỏi về doanh thu, lợi nhuận, quốc gia, khách hàng...", max_chars=400,
+        key="warehouse_chat_input"
+    )
+    prompt = suggested_prompt or typed_prompt
+    with conversation:
+        for item in messages:
+            with st.chat_message(item["role"]):
+                st.markdown(item["text"])
+                if item.get("table") is not None:
+                    st.dataframe(item["table"], use_container_width=True, hide_index=True)
+        if prompt:
+            history = [{"role": m["role"], "text": m["text"]} for m in messages[-8:]]
+            messages.append({"role": "user", "text": prompt})
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            with st.chat_message("assistant"):
+                if is_smart:
+                    try:
+                        with st.spinner("Đang phân tích câu hỏi và đối chiếu dữ liệu..."):
+                            response, frame = answer_ai(prompt, filters, history)
+                    except Exception:
+                        # Never show API keys, provider URLs or exception text to visitors.
+                        st.caption("Dịch vụ AI tạm thời không phản hồi. Đang dùng bộ hỏi đáp cơ bản.")
+                        response, frame = answer_question(prompt, filters)
+                else:
                     response, frame = answer_question(prompt, filters)
-            else:
-                response, frame = answer_question(prompt, filters)
-            st.markdown(response)
-            if frame is not None:
-                st.dataframe(frame, use_container_width=True, hide_index=True)
-            messages.append({"role": "assistant", "text": response, "table": frame})
+                st.markdown(response)
+                if frame is not None:
+                    st.dataframe(frame, use_container_width=True, hide_index=True)
+                messages.append({"role": "assistant", "text": response, "table": frame})
 
 
 

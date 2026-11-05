@@ -32,6 +32,37 @@ def normalize(question):
     return raw.replace("đ", "d")
 
 
+def intro_response(question):
+    """Recognize only standalone greetings/help, leaving business questions intact."""
+    text = " ".join(re.sub(r"[^\w\s]", " ", normalize(question)).split())
+    if not text:
+        return None
+    greetings = ("xin chao ban", "xin chao", "chao ban", "chao", "hello", "hi", "hey")
+    help_questions = {
+        "ban co the giup gi", "ban co the giup toi gi", "ban co the giup minh gi",
+        "ban giup duoc gi", "ban lam duoc gi", "ban co the lam gi",
+        "ban co the ho tro gi", "ban co chuc nang gi", "huong dan su dung",
+        "toi co the hoi gi", "minh co the hoi gi", "ban la ai", "what can you do",
+    }
+    for greeting in greetings:
+        if text == greeting:
+            text = ""
+            break
+        if text.startswith(greeting + " "):
+            text = text[len(greeting):].strip()
+            break
+    if text and text not in help_questions:
+        return None
+    return (
+        "Chào bạn! Mình hỗ trợ khám phá dữ liệu **Global Superstore (2011–2014)**:\n\n"
+        "- Xem doanh thu, lợi nhuận và so sánh ngành hàng, thị trường, quốc gia.\n"
+        "- Phân tích phân khúc khách hàng, khách quay lại và chiết khấu.\n"
+        "- Xem tương quan giữa các chỉ tiêu kinh doanh.\n\n"
+        "Bạn có thể **bấm một câu hỏi gợi ý bên dưới** hoặc nhập câu hỏi của mình. "
+        "Kết quả dựa trên dữ liệu và bộ lọc đang chọn."
+    )
+
+
 def fmt(value, digits=2):
     if pd.isna(value):
         return "không có dữ liệu"
@@ -61,12 +92,17 @@ def _unsupported():
             "(2011–2014): doanh thu, lợi nhuận, sản phẩm, thị trường, quốc gia, "
             "phân khúc khách hàng, chiết khấu và tương quan. "
             "Mình không có dữ liệu để trả lời câu hỏi này. "
-            "Bạn có thể chọn một câu hỏi mẫu ở bên dưới.")
+            "Bạn có thể bấm một câu hỏi gợi ý bên dưới.")
 
 
 def answer_question(question, base_filters):
     """Return (response: str, table: DataFrame | None)."""
-    if not question or len(question.strip()) < 3 or len(question) > 400:
+    if not isinstance(question, str) or not question.strip() or len(question) > 400:
+        return "Vui lòng nhập câu hỏi cụ thể, dài tối đa 400 ký tự.", None
+    introduction = intro_response(question)
+    if introduction is not None:
+        return introduction, None
+    if len(question.strip()) < 3:
         return "Vui lòng nhập câu hỏi cụ thể, dài tối đa 400 ký tự.", None
     filters, error = _scope(question, base_filters)
     if error:
@@ -77,7 +113,6 @@ def answer_question(question, base_filters):
                                    "update dw", "system prompt", "lap trinh", "thoi tiet",
                                    "chinh tri", "tong thong", "bong da", "tin tuc")):
         return _unsupported(), None
-
     def contains(*terms):
         return any(term in q for term in terms)
 
