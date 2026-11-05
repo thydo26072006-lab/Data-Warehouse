@@ -15,6 +15,16 @@ from ai_chatbot import configured as ai_configured, answer_ai
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
+# Shared palettes keep the original pink theme consistent across chart libraries.
+PINK = "#D80073"
+PLUM = "#71304F"
+LOSS = "#A21D46"
+BACKGROUND = "#FFFAFD"
+CATEGORY_COLORS = [PINK, "#8B416B", "#EC83B5", "#AD6AA0", "#F2B6D2", "#62334D", "#C74382"]
+SEQUENTIAL_COLORS = ["#FCECF4", "#F5B6D5", "#E96BA7", PINK, "#8F124F"]
+# Rose = negative, light = zero, mauve = positive; retain a signed scale.
+DIVERGING_COLORS = [LOSS, "#FFF3F8", "#78478F"]
+
 st.set_page_config(page_title="Superstore · Phân tích & dự báo", layout="wide")
 st.markdown("""<style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
@@ -24,23 +34,22 @@ html, body, .stApp, [data-testid="stSidebar"], .stMarkdown,
  font-family: 'Nunito', 'Segoe UI', sans-serif !important;
 }
 h1, h2, h3, h4, p, label, button {font-family:'Nunito','Segoe UI',sans-serif !important;}
-:root {--navy:#172f50; --orange:#ca7045; --cream:#fffdf9; --sky:#e8f4f8;}
-.stApp {background:#fffdf9; color:#273447;}
-[data-testid="stSidebar"] {background:#e9f3f7; border-right:1px solid #d8e3eb;}
+:root {--pink:#D80073; --plum:#71304F; --blush:#FFFAFD; --rose:#FCECF4;}
+.stApp {background:var(--blush); color:#3D3037;}
+[data-testid="stSidebar"] {background:var(--rose); border-right:1px solid #F1D4E2;}
 .block-container {padding-top:1.35rem; max-width:1560px; padding-bottom:2rem;}
-[data-testid="stMetric"] {background:#ffffff;border:1px solid #dae4eb;border-radius:12px;
- padding:17px 15px;box-shadow:0 2px 9px rgba(26,48,78,.055);min-width:0;}
-[data-testid="stMetricLabel"] {color:#956145;font-size:.89rem;font-weight:650;}
-[data-testid="stMetricValue"] {color:#183451;font-size:clamp(1.1rem,2.0vw,1.8rem);letter-spacing:-.02em;}
+[data-testid="stMetric"] {background:#ffffff;border:1px solid #F1D4E2;border-radius:12px;
+ padding:17px 15px;box-shadow:0 2px 9px rgba(113,48,79,.055);min-width:0;}
+[data-testid="stMetricLabel"] {color:#795365;font-size:.89rem;font-weight:650;}
+[data-testid="stMetricValue"] {color:#A50040;font-size:clamp(1.1rem,2.0vw,1.8rem);letter-spacing:-.02em;}
 [data-testid="stMetricValue"] > div {white-space:nowrap;}
-h1,h2,h3 {color:#162e55;letter-spacing:-.025em;font-weight:800;}
+h1,h2,h3 {color:var(--plum);letter-spacing:-.025em;font-weight:800;}
 h1 {font-size:2.2rem !important;}
-[data-testid="stSidebar"] h2 {color:#183451;}
-.stButton button[kind="primary"] {background:#ca7045;}
+[data-testid="stSidebar"] h2 {color:var(--plum);}
+.stButton button[kind="primary"] {background:var(--pink);border-color:var(--pink);color:white;}
 div[data-testid="stVerticalBlock"] {row-gap:0.9rem;}
 </style>""", unsafe_allow_html=True)
 
-PINK = "#ca7045"  # Warm orange accent, paired with the navy / light-blue dashboard
 PAGES = ["Tổng quan", "Sản phẩm & thị trường", "Khách hàng & đơn hàng", "Khám phá OLAP", "Dự báo doanh thu", "Hỏi đáp dữ liệu"]
 TITLES = dict(zip(QUERIES, [
     "01 · Tổng quan", "02 · Tăng trưởng theo tháng", "03 · ROLLUP thời gian",
@@ -78,7 +87,7 @@ def style_pie_percent(fig, height=310):
     )
     fig.update_layout(
         height=height, font=dict(family="Nunito, Segoe UI, sans-serif"),
-        paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+        paper_bgcolor=BACKGROUND, plot_bgcolor=BACKGROUND,
         margin=dict(l=20, r=20, t=14, b=45),
         uniformtext_mode="show",
         legend=dict(orientation="h", y=-0.15, x=0, title_text="")
@@ -90,8 +99,7 @@ def donut_with_percent(frame, names_col, values_col, height=310):
     """The same labeled Plotly donut for every market/category/segment view."""
     fig = px.pie(
         frame, names=names_col, values=values_col, hole=0.44,
-        color_discrete_sequence=["#c7794b", "#80acd2", "#243f75",
-                                 "#deb97e", "#5b9a9d", "#7774a0", "#d39a9b"]
+        color_discrete_sequence=CATEGORY_COLORS
     )
     return style_pie_percent(fig, height=height)
 
@@ -111,7 +119,7 @@ def bar(frame, dimension, measure="sales", limit=15, ascending=False):
     chart = alt.Chart(data).mark_bar(cornerRadiusEnd=4).encode(
         x=alt.X(f"{measure}:Q", title=NAMES.get(measure, measure)),
         y=alt.Y(f"{dimension}:N", sort="x" if ascending else "-x", title=None),
-        color=alt.condition(alt.datum[measure] < 0, alt.value("#a94b34"), alt.value(PINK)),
+        color=alt.condition(alt.datum[measure] < 0, alt.value(LOSS), alt.value(PINK)),
         tooltip=[alt.Tooltip(f"{dimension}:N", title=NAMES.get(dimension, dimension)),
                  alt.Tooltip(f"{measure}:Q", title=NAMES.get(measure, measure), format=",.2f")],
     ).properties(height=max(210, len(data) * 28))
@@ -124,7 +132,7 @@ def lines(frame, columns, labels, height=330):
     chart = alt.Chart(data).mark_line(point=True).encode(
         x=alt.X("month:T", title="Tháng", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("value:Q", title="Doanh thu / lợi nhuận", scale=alt.Scale(zero=False)),
-        color=alt.Color("series:N", title=None, scale=alt.Scale(range=[PINK, "#5e6472", "#b7d4e4"])),
+        color=alt.Color("series:N", title=None, scale=alt.Scale(range=[PINK, PLUM, "#EC83B5"])),
         tooltip=[alt.Tooltip("month:T", title="Tháng", format="%m/%Y"),
                  alt.Tooltip("series:N", title="Chỉ tiêu"), alt.Tooltip("value:Q", format=",.2f", title="Giá trị")],
     ).properties(height=height).interactive()
@@ -253,7 +261,7 @@ def products(filters):
             x=alt.X("market:N", title="Thị trường"),
             y=alt.Y("category:N", title="Ngành hàng"),
             color=alt.Color("margin_pct:Q", title="Biên lợi nhuận (%)",
-                            scale=alt.Scale(scheme="redblue", domainMid=0)),
+                            scale=alt.Scale(range=DIVERGING_COLORS, domainMid=0)),
             tooltip=["market:N", "category:N", alt.Tooltip("sales:Q", format=",.2f"),
                      alt.Tooltip("profit:Q", format=",.2f"),
                      alt.Tooltip("margin_pct:Q", format=".2f", title="Biên lợi nhuận (%)")]
@@ -281,11 +289,10 @@ def products(filters):
             box_lines, x=dimension, y="sales", color=color, points="outliers",
             labels={"sales": "Doanh thu mỗi dòng bán hàng", "market": "Thị trường",
                     "category": "Ngành hàng"},
-            color_discrete_sequence=["#c7794b", "#80acd2", "#243f75", "#deb97e",
-                                     "#5b9a9d", "#7774a0", "#d39a9b"]
+            color_discrete_sequence=CATEGORY_COLORS
         )
         box_fig.update_layout(
-            height=440, paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+            height=440, paper_bgcolor=BACKGROUND, plot_bgcolor=BACKGROUND,
             font=dict(family="Nunito, Segoe UI, sans-serif"),
             margin=dict(l=12, r=10, t=20, b=15), legend_title_text="",
             xaxis_title="", yaxis_title="Doanh thu mỗi dòng bán hàng"
@@ -325,7 +332,7 @@ def products(filters):
         fig = px.choropleth(mapped, locations="country", locationmode="country names",
                             color="metric", hover_name="country", hover_data={"sales": ":,.2f", "profit": ":,.2f",
                             "margin_pct": ":.2f", "metric": False, "country": False},
-                            color_continuous_scale="YlOrBr" if map_metric == "Doanh thu" else "RdBu",
+                            color_continuous_scale=SEQUENTIAL_COLORS if map_metric == "Doanh thu" else DIVERGING_COLORS,
                             color_continuous_midpoint=0 if map_metric != "Doanh thu" else None,
                             labels={"metric": map_metric}, projection="natural earth")
         fig.update_geos(showcoastlines=False, showcountries=True)
@@ -357,12 +364,13 @@ def products(filters):
                                 scope="usa", color="metric", hover_name="state",
                                 hover_data={"sales": ":,.2f", "profit": ":,.2f", "margin_pct": ":.2f",
                                             "metric": False, "code": False},
-                                color_continuous_scale="YlOrBr" if map_metric == "Doanh thu" else "RdBu",
+                                color_continuous_scale=SEQUENTIAL_COLORS if map_metric == "Doanh thu" else DIVERGING_COLORS,
                                 color_continuous_midpoint=0 if map_metric != "Doanh thu" else None,
                                 labels={"metric": map_metric})
     if geography_level == "Thế giới (quốc gia)" or not state_frame.empty:
         fig.update_layout(height=450, margin=dict(l=5,r=5,t=10,b=5),
-                          paper_bgcolor="#fffdf9", geo=dict(bgcolor="#fffdf9"),
+                          paper_bgcolor=BACKGROUND, geo=dict(bgcolor=BACKGROUND, landcolor="#F7E4ED", lakecolor=BACKGROUND),
+                          font=dict(family="Nunito, Segoe UI, sans-serif", color="#3D3037"),
                           coloraxis_colorbar=dict(title=map_metric))
         st.plotly_chart(fig, use_container_width=True, key="sales_geography_map")
     st.caption("Bản đồ sử dụng dữ liệu Global Superstore giai đoạn 2011–2014, không phải 2021–2024. "
@@ -448,7 +456,7 @@ def customers(filters):
     with d1:
         bar(discount, "discount_band", "profit", limit=10)
     with d2:
-        risk = alt.Chart(discount).mark_bar(color="#ca7045").encode(
+        risk = alt.Chart(discount).mark_bar(color=PINK).encode(
             x=alt.X("discount_band:N", title="Mức chiết khấu", sort=None),
             y=alt.Y("loss_rate_pct:Q", title="Tỷ lệ dòng lỗ (%)", scale=alt.Scale(domain=[0,100])),
             tooltip=["discount_band:N","loss_lines:Q","sales_lines:Q",
@@ -488,14 +496,14 @@ def customers(filters):
         labels = [[f"{v:+.2f}" if pd.notna(v) else "" for v in row] for row in values]
         fig_corr = go.Figure(go.Heatmap(
             x=names, y=names, z=values, zmin=-1, zmax=1, zmid=0,
-            colorscale=[[0, "#b84c42"], [0.5, "#faf8f5"], [1, "#243e78"]],
+            colorscale=DIVERGING_COLORS,
             text=labels, texttemplate="%{text}", textfont={"size": 13},
             hovertemplate="%{y} × %{x}<br>Pearson r = %{z:.3f}<extra></extra>",
             colorbar={"title": "r", "tickvals": [-1,-0.5,0,0.5,1]}
         ))
         fig_corr.update_layout(
             height=630, margin=dict(l=15,r=15,t=35,b=90),
-            paper_bgcolor="#fffdf9", plot_bgcolor="#fffdf9",
+            paper_bgcolor=BACKGROUND, plot_bgcolor=BACKGROUND,
             font=dict(family="Nunito, Segoe UI, sans-serif", size=13),
             xaxis=dict(side="top", tickangle=-35, automargin=True),
             yaxis=dict(autorange="reversed", automargin=True, scaleanchor="x", scaleratio=1)
@@ -660,7 +668,7 @@ def customers(filters):
             x=alt.X(f"{xcol}:Q", title=NAMES.get(xcol, xcol)),
             y=alt.Y(f"{ycol}:Q", title=NAMES.get(ycol, ycol)),
             color=alt.Color("category:N", title="Ngành hàng",
-                            scale=alt.Scale(range=["#c7794b", "#80acd2", "#243f75"])),
+                            scale=alt.Scale(range=CATEGORY_COLORS[:3])),
             tooltip=["row_id:Q","category:N",
                      alt.Tooltip(f"{xcol}:Q", format=",.3f"),
                      alt.Tooltip(f"{ycol}:Q", format=",.3f")]
@@ -740,7 +748,7 @@ def forecasts():
     line = alt.Chart(long).mark_line().encode(
         x=alt.X("month:T", title="Tháng", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("value:Q", title="Doanh thu (đơn vị gốc)", scale=alt.Scale(zero=False)),
-        color=alt.Color("series:N", title=None, scale=alt.Scale(range=["#99bcd3", PINK, "#5e6472"])),
+        color=alt.Color("series:N", title=None, scale=alt.Scale(range=["#C18CA6", PINK, PLUM])),
         tooltip=[alt.Tooltip("month:T", format="%m/%Y"), "series:N", alt.Tooltip("value:Q", format=",.2f")])
     point = alt.Chart(chart_data.dropna(subset=["next_forecast"])).mark_point(color=PINK, filled=True, size=170, shape="diamond", clip=False).encode(
         x="month:T", y="next_forecast:Q", tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("next_forecast:Q", title="Dự báo mới", format=",.2f")])
@@ -770,7 +778,7 @@ def forecasts():
     st.altair_chart(alt.Chart(diagnostic).mark_bar().encode(
         x=alt.X("month:T", title="Tháng kiểm tra", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("error:Q", title="Sai số thực tế − dự báo"),
-        color=alt.condition("datum.down_month", alt.value("#a94b34"), alt.value("#8d9aa8")),
+        color=alt.condition("datum.down_month", alt.value(LOSS), alt.value("#C18CA6")),
         tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("actual:Q", format=",.2f"),
                  alt.Tooltip("predicted:Q", format=",.2f"), alt.Tooltip("error:Q", format=",.2f"),
                  alt.Tooltip("down_month:N", title="Doanh thu giảm")]

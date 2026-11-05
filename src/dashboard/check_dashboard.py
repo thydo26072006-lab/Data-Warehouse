@@ -163,7 +163,7 @@ class DashboardChecks(unittest.TestCase):
             self.assert_clean(app)
         self.assertIn("Tỷ lệ mua lặp trong kỳ (từ 2 đơn trở lên)",
                       [m.label for m in app.metric])
-        self.assertIn("Phân tích tương quan giữa các chỉ tiêu",
+        self.assertIn("Ma trận tương quan các chỉ tiêu kinh doanh",
                       [x.value for x in app.subheader])
         self.assertIn("Tỷ lệ khách hàng quay lại", [m.label for m in app.metric])
         self.assertIn("Rủi ro lợi nhuận theo mức chiết khấu",

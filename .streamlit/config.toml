@@ -1,9 +1,13 @@
 [theme]
+base = "light"
 primaryColor = "#D80073"
 backgroundColor = "#FFFAFD"
 secondaryBackgroundColor = "#FCECF4"
 textColor = "#3D3037"
 font = "sans serif"
+chartCategoricalColors = ["#D80073", "#8B416B", "#EC83B5", "#AD6AA0", "#F2B6D2", "#62334D", "#C74382"]
+chartSequentialColors = ["#FFF3F8", "#FCE4F0", "#F9CEE3", "#F5B6D5", "#F094C1", "#E96BA7", "#E13E8C", "#D80073", "#B50D61", "#8F124F"]
+chartDivergingColors = ["#A21D46", "#BC466A", "#D47794", "#E9AEC1", "#FBE5EE", "#F5E7F3", "#DABDDC", "#BD94C8", "#9B6CAF", "#78478F"]
 
 [browser]
 gatherUsageStats = false
