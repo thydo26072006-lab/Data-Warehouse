@@ -835,18 +835,17 @@ def chat_page(filters):
     messages = st.session_state["warehouse_chat"]
     # Reserve the conversation above suggestions so new answers always precede them.
     conversation = st.container()
-    suggested_prompt = None
-    with st.container(key="chat_suggestions"):
-        st.markdown("**Câu hỏi gợi ý**")
+    with st.container(key="chat_suggestions"), st.expander("Câu hỏi gợi ý", expanded=True):
+        st.caption("Chọn câu hỏi để điền vào ô chat. Bạn có thể chỉnh sửa trước khi gửi.")
         columns = st.columns(2)
         for index, example in enumerate(CHAT_EXAMPLES):
             if columns[index % 2].button(example, key=f"chat_example_{index}", width="stretch"):
-                suggested_prompt = example
-    typed_prompt = st.chat_input(
+                # Prefill replaces any draft; chat_input returns only explicit submissions.
+                st.session_state["warehouse_chat_input"] = example
+    prompt = st.chat_input(
         "Hỏi về doanh thu, lợi nhuận, quốc gia, khách hàng...", max_chars=400,
         key="warehouse_chat_input"
     )
-    prompt = suggested_prompt or typed_prompt
     with conversation:
         for item in messages:
             with st.chat_message(item["role"]):

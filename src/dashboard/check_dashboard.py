@@ -300,6 +300,7 @@ class DashboardChecks(unittest.TestCase):
         self.assertIn("Trợ lý hỏi đáp Global Superstore",
                       [x.value for x in app.subheader])
         self.assertGreaterEqual(len(app.chat_input), 1)
+        self.assertIn("Câu hỏi gợi ý", [e.label for e in app.expander])
         self.assertEqual([b.label for b in app.button if (b.key or "").startswith("chat_example_")],
                          CHAT_EXAMPLES[::2] + CHAT_EXAMPLES[1::2])
 
@@ -323,7 +324,7 @@ class DashboardChecks(unittest.TestCase):
         response, _ = answer_question("Chào bạn, doanh thu năm 2014 là bao nhiêu?", self.filters)
         self.assertIn("4.300.041", response)
 
-    def test_chat_suggestions_remain_visible_and_submit_once(self):
+    def test_chat_suggestions_replace_draft_and_wait_for_submission(self):
         app = self.app()
         app.sidebar.radio[0].set_value("Hỏi đáp dữ liệu").run()
         app.chat_input[0].set_value("chào bạn, bạn có thể giúp gì").run()
@@ -332,7 +333,15 @@ class DashboardChecks(unittest.TestCase):
         app.chat_input[0].set_value("Thời tiết hôm nay?").run()
         self.assert_clean(app)
         self.assertIn("câu hỏi gợi ý", app.session_state["warehouse_chat"][-1]["text"])
+        next(b for b in app.button if b.key == "chat_example_1").click().run()
+        self.assert_clean(app)
+        self.assertEqual(len(app.session_state["warehouse_chat"]), 4)
+        self.assertEqual(app.chat_input[0].value, CHAT_EXAMPLES[1])
         next(b for b in app.button if b.key == "chat_example_2").click().run()
+        self.assert_clean(app)
+        self.assertEqual(len(app.session_state["warehouse_chat"]), 4)
+        self.assertEqual(app.chat_input[0].value, CHAT_EXAMPLES[2])
+        app.chat_input[0].set_value(CHAT_EXAMPLES[2]).run()
         self.assert_clean(app)
         messages = app.session_state["warehouse_chat"]
         self.assertEqual(len(messages), 6)
