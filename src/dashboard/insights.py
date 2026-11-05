@@ -16,37 +16,55 @@ def customer_orders(filters):
     """, (end, list(filters[2]), list(filters[3])))
 
 
-def customer_kpis(orders, start, end, lookback_months=12):
-    """New/returning = first observed order in filtered market/product scope.
+def customer_window(start, end, months):
+    """Return an N-month analysis window ending at the chosen sidebar end.
 
-    Repeat = 2+ separate orders through end. Inactive proxy = prior customer
-    without an order during the preceding N months. No true churn label exists.
+    The window never extends before the sidebar's selected start, while
+    customer_orders supplies earlier history for correct new/returning labels.
+    End date is exclusive and aligned to the first day of the following month.
+    """
+    if months not in (3, 6, 12):
+        raise ValueError("Supported customer analysis periods: 3, 6, 12 months")
+    start_ts, end_ts = pd.Timestamp(start), pd.Timestamp(end)
+    return max(start_ts, end_ts - pd.DateOffset(months=months)).date(), end_ts.date()
+
+
+def customer_kpis(orders, start, end, lookback_months=12):
+    """Unique customers, evaluated within [start,end), with pre-period history.
+
+    New = first recorded purchase in the window, returning = purchased before
+    the window AND within it; inactive is a proxy among customers whose first
+    purchase preceded the window and who did not purchase in the window.
+    The dataset is left-censored at the beginning of 2011.
     """
     empty = {"active": 0, "new": 0, "returning": 0, "repeat": 0,
-             "repeat_pct": 0.0, "returning_pct": 0.0, "previous": 0, "inactive": 0, "inactive_pct": 0.0}
+             "repeat_pct": 0.0, "returning_pct": 0.0,
+             "previous": 0, "inactive": 0, "inactive_pct": 0.0}
     if orders.empty:
         return empty
     data = orders.copy()
     data["order_date"] = pd.to_datetime(data["order_date"])
+    start_ts, end_ts = pd.Timestamp(start), pd.Timestamp(end)
+    data = data.loc[data.order_date.lt(end_ts)]
+    if data.empty:
+        return empty
     first = data.groupby("customer_id").order_date.min()
-    end_ts = pd.Timestamp(end)
-    start_ts = pd.Timestamp(start)
-    active_orders = data.loc[data.order_date.ge(start_ts) & data.order_date.lt(end_ts)]
-    active = set(active_orders.customer_id)
-    new = {c for c in active if first[c] >= start_ts}
-    order_count = data.groupby("customer_id").size()
-    repeat = sum(order_count[c] >= 2 for c in active)
-    lookback_start = end_ts - pd.DateOffset(months=lookback_months)
-    previous = set(first.index[first < lookback_start])
-    recent = set(data.loc[data.order_date.ge(lookback_start), "customer_id"])
-    inactive = previous - recent
+    period = data.loc[data.order_date.ge(start_ts)]
+    active = set(period.customer_id)
+    new = set(first.index[first.ge(start_ts)]) & active
+    returning = active - new
+    # A repeated purchase is two or more separate order IDs within the window.
+    repeat = int((period.groupby("customer_id").size() >= 2).sum())
+    previous = set(first.index[first.lt(start_ts)])
+    inactive = previous - active
     n_active = len(active)
-    return {"active": n_active, "new": len(new), "returning": n_active - len(new),
-            "returning_pct": 100 * (n_active - len(new)) / n_active if n_active else 0.,
-            "repeat": int(repeat), "repeat_pct": 100 * repeat / n_active if n_active else 0.,
-            "previous": len(previous), "inactive": len(inactive),
-            "inactive_pct": 100 * len(inactive) / len(previous) if previous else 0.}
-
+    return {
+        "active": n_active, "new": len(new), "returning": len(returning),
+        "returning_pct": 100 * len(returning) / n_active if n_active else 0.,
+        "repeat": repeat, "repeat_pct": 100 * repeat / n_active if n_active else 0.,
+        "previous": len(previous), "inactive": len(inactive),
+        "inactive_pct": 100 * len(inactive) / len(previous) if previous else 0.,
+    }
 
 def segment_breakdown(orders, start, end):
     """Unique active customers and in-period sales/profit by customer segment."""
