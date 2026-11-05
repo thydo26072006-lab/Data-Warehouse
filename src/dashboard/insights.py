@@ -123,6 +123,51 @@ CORRELATION_SCOPES = {
 }
 
 
+def select_correlation_rows(rows, scope="all"):
+    """Return sales lines for the selected correlation cohort."""
+    if scope not in CORRELATION_SCOPES.values():
+        raise ValueError("Unsupported correlation scope")
+    frame = rows.copy()
+    if scope in ("profitable", "non_profitable") and not frame.empty:
+        country_profit = frame.groupby("country", dropna=False)["profit"].sum()
+        selected = (country_profit.gt(0) if scope == "profitable"
+                    else country_profit.le(0))
+        frame = frame.loc[frame.country.isin(country_profit[selected].index)].copy()
+    elif scope == "discount_below_10":
+        frame = frame.loc[frame.discount.lt(0.10)].copy()
+    elif scope == "discount_above_10":
+        frame = frame.loc[frame.discount.gt(0.10)].copy()
+    return frame
+
+
+def country_performance(rows, scope="all"):
+    """Country rankings with sales/profit and diagnostic indicators.
+
+    Grouping, loss counts and ratios are based on the exact lines displayed.
+    In discount cohorts, profit is for the selected discount subset, NOT
+    the country's whole-period profit.
+    """
+    frame = select_correlation_rows(rows, scope)
+    columns = ["country", "sales", "profit", "shipping_cost", "sales_lines",
+               "loss_lines", "avg_discount_pct", "margin_pct", "loss_rate_pct", "status"]
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+    frame = frame.copy()
+    frame["loss_flag"] = frame.profit.lt(0).astype(int)
+    summary = frame.groupby("country", as_index=False).agg(
+        sales=("sales", "sum"), profit=("profit", "sum"),
+        shipping_cost=("shipping_cost", "sum"),
+        sales_lines=("profit", "size"), loss_lines=("loss_flag", "sum"),
+        avg_discount=("discount", "mean"))
+    summary["avg_discount_pct"] = 100 * summary.avg_discount
+    summary["margin_pct"] = (100 * summary.profit /
+                              summary.sales.where(summary.sales.ne(0)))
+    summary["loss_rate_pct"] = 100 * summary.loss_lines / summary.sales_lines
+    summary["status"] = summary.profit.map(
+        lambda v: "Sinh lời" if v > 0 else "Lỗ" if v < 0 else "Hòa vốn")
+    return summary[columns].sort_values(["profit", "country"], ascending=[True, True]).reset_index(drop=True)
+
+
 def correlation_dataset(rows, profitable_countries_only=False, scope=None):
     """Return numeric features at sales-line grain and observed country count.
 
@@ -131,22 +176,8 @@ def correlation_dataset(rows, profitable_countries_only=False, scope=None):
     all rows from matching countries are included in the group. The discount
     scopes are strictly < 10% and > 10%; exact 10% belongs to neither.
     """
-    frame = rows.copy()
     selected = scope or ("profitable" if profitable_countries_only else "all")
-    if selected not in CORRELATION_SCOPES.values():
-        raise ValueError("Unsupported correlation scope")
-    if selected in ("profitable", "non_profitable") and not frame.empty:
-        country_profit = frame.groupby("country", dropna=False)["profit"].sum()
-        if selected == "profitable":
-            selected_countries = country_profit[country_profit.gt(0)].index
-        else:
-            selected_countries = country_profit[country_profit.le(0)].index
-        frame = frame.loc[frame.country.isin(selected_countries)].copy()
-    elif selected == "discount_below_10":
-        frame = frame.loc[frame.discount.lt(0.10)].copy()
-    elif selected == "discount_above_10":
-        frame = frame.loc[frame.discount.gt(0.10)].copy()
-
+    frame = select_correlation_rows(rows, selected)
     if frame.empty:
         return pd.DataFrame(columns=list(CORRELATION_FIELDS)), 0
 
