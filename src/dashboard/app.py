@@ -15,15 +15,15 @@ from ai_chatbot import configured as ai_configured, answer_ai
 
 from data import ROOT, QUERIES, current_monthly, metadata, monthly_growth, olap, product_details
 
-# Shared palettes keep the original pink theme consistent across chart libraries.
-PINK = "#D80073"
-PLUM = "#71304F"
-LOSS = "#A21D46"
-BACKGROUND = "#FFFAFD"
-CATEGORY_COLORS = [PINK, "#8B416B", "#EC83B5", "#AD6AA0", "#F2B6D2", "#62334D", "#C74382"]
-SEQUENTIAL_COLORS = ["#FCECF4", "#F5B6D5", "#E96BA7", PINK, "#8F124F"]
-# Rose = negative, light = zero, mauve = positive; retain a signed scale.
-DIVERGING_COLORS = [LOSS, "#FFF3F8", "#78478F"]
+# Shared palettes match the orange / navy additions across all chart libraries.
+ACCENT = "#CA7045"
+NAVY = "#243F75"
+LOSS = "#A94B34"
+BACKGROUND = "#FFFDF9"
+CATEGORY_COLORS = ["#C7794B", "#80ACD2", NAVY, "#DEB97E", "#5B9A9D", "#7774A0", "#D39A9B"]
+SEQUENTIAL_COLORS = px.colors.sequential.YlOrBr
+# Red = negative, light = zero, navy = positive; retain a signed scale.
+DIVERGING_COLORS = ["#B84C42", "#FAF8F5", "#243E78"]
 
 st.set_page_config(page_title="Superstore · Phân tích & dự báo", layout="wide")
 st.markdown("""<style>
@@ -34,19 +34,19 @@ html, body, .stApp, [data-testid="stSidebar"], .stMarkdown,
  font-family: 'Nunito', 'Segoe UI', sans-serif !important;
 }
 h1, h2, h3, h4, p, label, button {font-family:'Nunito','Segoe UI',sans-serif !important;}
-:root {--pink:#D80073; --plum:#71304F; --blush:#FFFAFD; --rose:#FCECF4;}
-.stApp {background:var(--blush); color:#3D3037;}
-[data-testid="stSidebar"] {background:var(--rose); border-right:1px solid #F1D4E2;}
+:root {--navy:#172f50; --orange:#ca7045; --cream:#fffdf9; --sky:#e8f4f8;}
+.stApp {background:#fffdf9; color:#273447;}
+[data-testid="stSidebar"] {background:#e9f3f7; border-right:1px solid #d8e3eb;}
 .block-container {padding-top:1.35rem; max-width:1560px; padding-bottom:2rem;}
-[data-testid="stMetric"] {background:#ffffff;border:1px solid #F1D4E2;border-radius:12px;
- padding:17px 15px;box-shadow:0 2px 9px rgba(113,48,79,.055);min-width:0;}
-[data-testid="stMetricLabel"] {color:#795365;font-size:.89rem;font-weight:650;}
-[data-testid="stMetricValue"] {color:#A50040;font-size:clamp(1.1rem,2.0vw,1.8rem);letter-spacing:-.02em;}
+[data-testid="stMetric"] {background:#ffffff;border:1px solid #dae4eb;border-radius:12px;
+ padding:17px 15px;box-shadow:0 2px 9px rgba(26,48,78,.055);min-width:0;}
+[data-testid="stMetricLabel"] {color:#956145;font-size:.89rem;font-weight:650;}
+[data-testid="stMetricValue"] {color:#183451;font-size:clamp(1.1rem,2.0vw,1.8rem);letter-spacing:-.02em;}
 [data-testid="stMetricValue"] > div {white-space:nowrap;}
-h1,h2,h3 {color:var(--plum);letter-spacing:-.025em;font-weight:800;}
+h1,h2,h3 {color:#162e55;letter-spacing:-.025em;font-weight:800;}
 h1 {font-size:2.2rem !important;}
-[data-testid="stSidebar"] h2 {color:var(--plum);}
-.stButton button[kind="primary"] {background:var(--pink);border-color:var(--pink);color:white;}
+[data-testid="stSidebar"] h2 {color:#183451;}
+.stButton button[kind="primary"] {background:#ca7045;}
 .st-key-chat_suggestions button {height:auto;min-height:2.75rem;text-align:left;}
 .st-key-chat_suggestions .stMarkdownEllipsis,
 .st-key-chat_suggestions button p {white-space:normal;overflow:visible;text-overflow:clip;}
@@ -122,7 +122,7 @@ def bar(frame, dimension, measure="sales", limit=15, ascending=False):
     chart = alt.Chart(data).mark_bar(cornerRadiusEnd=4).encode(
         x=alt.X(f"{measure}:Q", title=NAMES.get(measure, measure)),
         y=alt.Y(f"{dimension}:N", sort="x" if ascending else "-x", title=None),
-        color=alt.condition(alt.datum[measure] < 0, alt.value(LOSS), alt.value(PINK)),
+        color=alt.condition(alt.datum[measure] < 0, alt.value(LOSS), alt.value(ACCENT)),
         tooltip=[alt.Tooltip(f"{dimension}:N", title=NAMES.get(dimension, dimension)),
                  alt.Tooltip(f"{measure}:Q", title=NAMES.get(measure, measure), format=",.2f")],
     ).properties(height=max(210, len(data) * 28))
@@ -135,7 +135,7 @@ def lines(frame, columns, labels, height=330):
     chart = alt.Chart(data).mark_line(point=True).encode(
         x=alt.X("month:T", title="Tháng", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("value:Q", title="Doanh thu / lợi nhuận", scale=alt.Scale(zero=False)),
-        color=alt.Color("series:N", title=None, scale=alt.Scale(range=[PINK, PLUM, "#EC83B5"])),
+        color=alt.Color("series:N", title=None, scale=alt.Scale(range=[ACCENT, "#5E6472", "#B7D4E4"])),
         tooltip=[alt.Tooltip("month:T", title="Tháng", format="%m/%Y"),
                  alt.Tooltip("series:N", title="Chỉ tiêu"), alt.Tooltip("value:Q", format=",.2f", title="Giá trị")],
     ).properties(height=height).interactive()
@@ -204,7 +204,7 @@ def overview(filters, summary):
         if period == "Tháng":
             rolled["period_label"] = (rolled.calendar_year.astype(int).astype(str) + "-"
                                       + rolled.calendar_month.astype(int).astype(str).str.zfill(2))
-        st.altair_chart(alt.Chart(rolled).mark_bar(color=PINK).encode(
+        st.altair_chart(alt.Chart(rolled).mark_bar(color=ACCENT).encode(
             x=alt.X("period_label:N", sort=None, title=period),
             y=alt.Y("sales:Q", title="Doanh thu"),
             tooltip=["period_label:N", alt.Tooltip("sales:Q", format=",.2f"),
@@ -372,8 +372,8 @@ def products(filters):
                                 labels={"metric": map_metric})
     if geography_level == "Thế giới (quốc gia)" or not state_frame.empty:
         fig.update_layout(height=450, margin=dict(l=5,r=5,t=10,b=5),
-                          paper_bgcolor=BACKGROUND, geo=dict(bgcolor=BACKGROUND, landcolor="#F7E4ED", lakecolor=BACKGROUND),
-                          font=dict(family="Nunito, Segoe UI, sans-serif", color="#3D3037"),
+                          paper_bgcolor=BACKGROUND, geo=dict(bgcolor=BACKGROUND, landcolor="#E8EDF2", lakecolor=BACKGROUND),
+                          font=dict(family="Nunito, Segoe UI, sans-serif", color="#273447"),
                           coloraxis_colorbar=dict(title=map_metric))
         st.plotly_chart(fig, use_container_width=True, key="sales_geography_map")
     st.caption("Bản đồ sử dụng dữ liệu Global Superstore giai đoạn 2011–2014, không phải 2021–2024. "
@@ -459,7 +459,7 @@ def customers(filters):
     with d1:
         bar(discount, "discount_band", "profit", limit=10)
     with d2:
-        risk = alt.Chart(discount).mark_bar(color=PINK).encode(
+        risk = alt.Chart(discount).mark_bar(color=ACCENT).encode(
             x=alt.X("discount_band:N", title="Mức chiết khấu", sort=None),
             y=alt.Y("loss_rate_pct:Q", title="Tỷ lệ dòng lỗ (%)", scale=alt.Scale(domain=[0,100])),
             tooltip=["discount_band:N","loss_lines:Q","sales_lines:Q",
@@ -751,9 +751,9 @@ def forecasts():
     line = alt.Chart(long).mark_line().encode(
         x=alt.X("month:T", title="Tháng", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("value:Q", title="Doanh thu (đơn vị gốc)", scale=alt.Scale(zero=False)),
-        color=alt.Color("series:N", title=None, scale=alt.Scale(range=["#C18CA6", PINK, PLUM])),
+        color=alt.Color("series:N", title=None, scale=alt.Scale(range=["#99BCD3", ACCENT, "#5E6472"])),
         tooltip=[alt.Tooltip("month:T", format="%m/%Y"), "series:N", alt.Tooltip("value:Q", format=",.2f")])
-    point = alt.Chart(chart_data.dropna(subset=["next_forecast"])).mark_point(color=PINK, filled=True, size=170, shape="diamond", clip=False).encode(
+    point = alt.Chart(chart_data.dropna(subset=["next_forecast"])).mark_point(color=ACCENT, filled=True, size=170, shape="diamond", clip=False).encode(
         x="month:T", y="next_forecast:Q", tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("next_forecast:Q", title="Dự báo mới", format=",.2f")])
     st.altair_chart((line + point).properties(height=380).interactive(), width="stretch")
     st.caption("Dấu hình thoi là dự báo tháng 01/2015, chưa có số thực tế. Các dự báo năm 2014 được thực hiện cuốn chiếu, trước một tháng.")
@@ -781,7 +781,7 @@ def forecasts():
     st.altair_chart(alt.Chart(diagnostic).mark_bar().encode(
         x=alt.X("month:T", title="Tháng kiểm tra", axis=alt.Axis(format="%m/%Y")),
         y=alt.Y("error:Q", title="Sai số thực tế − dự báo"),
-        color=alt.condition("datum.down_month", alt.value(LOSS), alt.value("#C18CA6")),
+        color=alt.condition("datum.down_month", alt.value(LOSS), alt.value("#8D9AA8")),
         tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("actual:Q", format=",.2f"),
                  alt.Tooltip("predicted:Q", format=",.2f"), alt.Tooltip("error:Q", format=",.2f"),
                  alt.Tooltip("down_month:N", title="Doanh thu giảm")]
