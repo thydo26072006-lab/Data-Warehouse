@@ -125,6 +125,10 @@ class DashboardChecks(unittest.TestCase):
         self.assertEqual(app.metric[0].value, "352.375,83")
         self.assertEqual(app.metric[1].value, "9,63%")
         self.assertGreaterEqual(len(app.metric), 6)
+        self.assertIn("Mô phỏng Monte Carlo: phân phối doanh thu dự báo",
+                      [x.value for x in app.subheader])
+        self.assertIn("P5 · kịch bản thấp", [x.label for x in app.metric])
+        self.assertIn("Xác suất dưới mục tiêu", [x.label for x in app.metric])
 
     def test_filter_widgets_and_empty_selection(self):
         app = self.app()
