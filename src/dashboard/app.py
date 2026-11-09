@@ -4,6 +4,7 @@ import json
 
 import altair as alt
 import pandas as pd
+from monte_carlo import simulate_revenue, summarize_revenue
 import psycopg
 import streamlit as st
 import plotly.express as px
@@ -816,7 +817,82 @@ def forecasts():
         st.write("WAPE càng thấp càng tốt; không phải độ chính xác phân loại. Chỉ có bốn năm lịch sử, "
                  "chưa ước lượng khoảng dự báo. Dự báo doanh thu hỗ trợ lập mục tiêu, chưa xác định được lượng nhập hàng.")
         st.caption("Thời điểm tạo kết quả: " + manifest["created_at"])
+    monte_carlo_panel(future, test, selected)
 
+
+
+
+def monte_carlo_panel(future, evaluated, selected):
+    """Interactive Monte Carlo sensitivity view, based on 2014 backtest errors."""
+    st.subheader("Mô phỏng Monte Carlo: phân phối doanh thu dự báo")
+    st.caption(
+        "Mô phỏng bổ sung cho dự báo tháng 01/2015. Lấy mẫu lại sai số dự báo trước một tháng "
+        "trên 12 tháng năm 2014 của mô hình đã chọn. Với tổng doanh thu, cả ba ngành hàng "
+        "được lấy cùng một tháng sai số để giữ liên hệ biến động giữa các ngành."
+    )
+    total = selected == "Tất cả nhóm sản phẩm"
+    scope = None if total else selected
+    point_forecast = float(future.predicted_sales.sum() if total else
+                           future.loc[future.category.eq(selected), "predicted_sales"].iloc[0])
+    a, b, c = st.columns([1, 1, 1.3])
+    draws = a.slider("Số kịch bản mô phỏng", 1000, 30000, 10000, 1000, key="mc_draws")
+    seed = b.number_input("Hạt giống ngẫu nhiên (seed)", min_value=0, max_value=2**32 - 1,
+                          value=2026, step=1, key="mc_seed")
+    target = c.number_input("Mục tiêu doanh thu tháng 01/2015", min_value=0.0,
+                            value=float(round(point_forecast, 2)), step=1000.0,
+                            key="mc_target_" + ("all" if total else selected.replace(" ", "_")))
+    try:
+        scenarios = simulate_revenue(future, evaluated, category=scope, draws=int(draws), seed=int(seed))
+        summary = summarize_revenue(scenarios, target=float(target))
+    except ValueError as exc:
+        st.warning("Không thể mô phỏng với bộ dữ liệu hiện tại: " + str(exc))
+        return
+
+    p1, p2, p3, p4 = st.columns(4)
+    p1.metric("P5 · kịch bản thấp", number(summary["p5"], 2))
+    p2.metric("P50 · trung vị", number(summary["p50"], 2))
+    p3.metric("P95 · kịch bản cao", number(summary["p95"], 2))
+    p4.metric("Xác suất dưới mục tiêu", f'{summary["downside_probability"]:.1f}%')
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(x=scenarios, nbinsx=25, name="Kịch bản mô phỏng",
+                               marker_color=ACCENT, opacity=0.82,
+                               hovertemplate="Doanh thu: %{x:,.2f}<extra></extra>"))
+    fig.add_vline(x=point_forecast, line_color=NAVY, line_width=2.5, line_dash="solid")
+    fig.add_vline(x=summary["p5"], line_color=LOSS, line_dash="dash", line_width=2)
+    fig.add_vline(x=summary["p95"], line_color=LOSS, line_dash="dash", line_width=2)
+    fig.add_vline(x=float(target), line_color="#168477", line_dash="dot", line_width=2)
+    fig.update_layout(height=350, margin=dict(l=20, r=20, t=18, b=35),
+                      xaxis_title="Doanh thu tháng 01/2015 (đơn vị tiền tệ của bộ dữ liệu)",
+                      yaxis_title="Số lần xuất hiện", bargap=0.10, showlegend=False,
+                      plot_bgcolor=BACKGROUND, paper_bgcolor=BACKGROUND)
+    st.plotly_chart(fig, width="stretch", key="mc_distribution")
+    st.caption("Đường xanh đậm: dự báo điểm; hai đường đỏ đứt: P5 và P95; "
+               "đường xanh lục chấm: mục tiêu doanh thu. "
+               "Đây là các phân vị mô phỏng, không phải khoảng tin cậy đã được kiểm định.")
+    st.write(
+        f"Ở phạm vi đang chọn, doanh thu dự báo điểm là {number(point_forecast, 2)}. "
+        f"Mô phỏng cho trung vị {number(summary['p50'], 2)}, "
+        f"với phân vị 5% là {number(summary['p5'], 2)} và phân vị 95% là "
+        f"{number(summary['p95'], 2)}. "
+        f"Trong {int(draws):,} lượt lấy mẫu, tỷ lệ không đạt mục tiêu "
+        f"{number(target, 2)} là {summary['downside_probability']:.1f}%."
+    )
+    with st.expander("Giả định, cách tính và giới hạn mô phỏng"):
+        st.write(
+            "Kỹ thuật: residual bootstrap (lấy mẫu lại sai số thực tế trừ dự báo), "
+            "12 tháng của tập kiểm tra 2014, lấy mẫu có hoàn lại và seed cố định. "
+            "Doanh thu từng ngành được chặn dưới tại 0 trước khi cộng thành tổng. "
+            "10.000 lượt mô phỏng không tạo thêm dữ liệu lịch sử hay 10.000 kịch bản độc lập: "
+            "chỉ có tối đa 12 mẫu sai số theo tháng khác nhau."
+        )
+        st.write(
+            "Các sai số được giả định có thể đại diện cho tháng dự báo kế tiếp. "
+            "Tập kiểm tra 2014 đồng thời được dùng để hiệu chỉnh mô phỏng, "
+            "vì vậy các phân vị và xác suất trên chưa được kiểm định độc lập. "
+            "Mô phỏng chưa mô tả thay đổi cơ cấu thị trường, cú sốc đột biến hoặc "
+            "độ bất định riêng của tham số Holt–Winters. "
+            "Không diễn giải xác suất như một cam kết doanh thu thực tế."
+        )
 
 
 def chat_page(filters):
