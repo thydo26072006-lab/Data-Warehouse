@@ -867,11 +867,11 @@ def monte_carlo_panel(future, evaluated, selected):
                    tickformat=",.0f", showgrid=True, gridcolor="#EDF1F5",
                    zeroline=False),
         yaxis=dict(title=None, showticklabels=False, showgrid=False, zeroline=False),
-        showlegend=True, legend=dict(orientation="h", y=-.30, x=0, font=dict(size=11)),
+        showlegend=False,
         plot_bgcolor=BACKGROUND, paper_bgcolor=BACKGROUND
     )
     st.plotly_chart(fig, width="stretch", key="mc_revenue_range")
-    st.caption("Dải xanh: khoảng doanh thu tham khảo từ dữ liệu cũ. "
+    st.caption("Dải xanh: khoảng doanh thu tham khảo từ dữ liệu lịch sử. "
                "Chấm tròn: mức trung tâm. Hình thoi: dự báo hiện tại.")
 
     left, right = st.columns([1.2, 1])
