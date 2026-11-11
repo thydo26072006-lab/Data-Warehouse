@@ -4,7 +4,6 @@ import json
 
 import altair as alt
 import pandas as pd
-from monte_carlo import simulate_revenue, summarize_revenue
 import psycopg
 import streamlit as st
 import plotly.express as px
@@ -758,7 +757,6 @@ def forecasts():
         x="month:T", y="next_forecast:Q", tooltip=[alt.Tooltip("month:T", format="%m/%Y"), alt.Tooltip("next_forecast:Q", title="Dự báo mới", format=",.2f")])
     st.altair_chart((line + point).properties(height=380).interactive(), width="stretch")
     st.caption("Dấu hình thoi là dự báo tháng 01/2015, chưa có số thực tế. Các dự báo năm 2014 được thực hiện cuốn chiếu, trước một tháng.")
-    monte_carlo_panel(future, test, selected)
     table(view[["category", "month", "model", "predicted_sales", "same_month_last_year", "predicted_yoy_pct"]], "next_month_forecast", "Chi tiết dự báo tháng tiếp theo")
     table(compared[["role", "model", "mae", "rmse", "wape_pct"]], "forecast_evaluation", "Đánh giá mô hình và đối chứng")
     st.subheader("Chẩn đoán sai số dự báo năm 2014")
@@ -820,77 +818,6 @@ def forecasts():
         st.caption("Thời điểm tạo kết quả: " + manifest["created_at"])
 
 
-
-
-def monte_carlo_panel(future, evaluated, selected):
-    """Customer-facing sales planning view; technical details stay in documentation."""
-    total = selected == "Tất cả nhóm sản phẩm"
-    scope = None if total else selected
-    point = float(future.predicted_sales.sum() if total else
-                  future.loc[future.category.eq(selected), "predicted_sales"].iloc[0])
-    st.subheader("Doanh thu dự kiến và mức độ biến động")
-    st.caption("Tháng 01/2015 · " + ("Toàn bộ ngành hàng" if total else selected))
-    try:
-        scenarios = simulate_revenue(future, evaluated, category=scope, draws=10_000, seed=2026)
-        reference = summarize_revenue(scenarios, target=point)
-    except ValueError:
-        st.warning("Chưa đủ dữ liệu để hiển thị các kịch bản doanh thu.")
-        return
-
-    low = reference["p5"]
-    middle = reference["p50"]
-    high = reference["p95"]
-    a, b, c = st.columns(3)
-    a.metric("Mức thấp", number(low, 0))
-    b.metric("Mức trung tâm", number(middle, 0))
-    c.metric("Mức cao", number(high, 0))
-
-    st.markdown("**Doanh thu có thể thay đổi trong khoảng nào?**")
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=[low, high], y=["Khoảng tham khảo", "Khoảng tham khảo"],
-        mode="lines", line=dict(color="#80ACD2", width=18),
-        name="Khoảng tham khảo", hovertemplate="Doanh thu: %{x:,.0f}<extra></extra>"))
-    fig.add_trace(go.Scatter(
-        x=[middle], y=["Khoảng tham khảo"], mode="markers",
-        marker=dict(color=NAVY, size=15, symbol="circle", line=dict(color="white", width=2)),
-        name="Mức trung tâm", hovertemplate="Mức trung tâm: %{x:,.0f}<extra></extra>"))
-    fig.add_trace(go.Scatter(
-        x=[point], y=["Khoảng tham khảo"], mode="markers",
-        marker=dict(color=ACCENT, size=13, symbol="diamond", line=dict(color="white", width=1.5)),
-        name="Dự báo hiện tại", hovertemplate="Dự báo: %{x:,.0f}<extra></extra>"))
-    span = max(high - low, point * 0.04, 1.0)
-    fig.update_layout(
-        height=150, margin=dict(l=10, r=10, t=10, b=30),
-        xaxis=dict(title=None, range=[min(low, point) - span * .22,
-                                      max(high, point) + span * .22],
-                   tickformat=",.0f", showgrid=True, gridcolor="#EDF1F5",
-                   zeroline=False),
-        yaxis=dict(title=None, showticklabels=False, showgrid=False, zeroline=False),
-        showlegend=False,
-        plot_bgcolor=BACKGROUND, paper_bgcolor=BACKGROUND
-    )
-    st.plotly_chart(fig, width="stretch", key="mc_revenue_range")
-    st.caption("Dải xanh: khoảng doanh thu tham khảo từ dữ liệu lịch sử. "
-               "Chấm tròn: mức trung tâm. Hình thoi: dự báo hiện tại.")
-
-    left, right = st.columns([1.2, 1])
-    with left:
-        st.markdown("**Đánh giá mục tiêu doanh thu**")
-        target = st.number_input(
-            "Mục tiêu doanh thu tháng 01/2015",
-            min_value=0.0, value=float(round(point, 2)), step=1000.0,
-            key="mc_target_" + ("all" if total else selected.replace(" ", "_"))
-        )
-    result = summarize_revenue(scenarios, target=float(target))
-    achieved = max(0.0, min(100.0, 100.0 - result["downside_probability"]))
-    with right:
-        st.metric("Tỷ lệ kịch bản đạt mục tiêu", f"{achieved:.0f}%")
-        st.progress(achieved / 100.0)
-    st.caption(
-        "Kết quả chỉ mang tính tham khảo, dựa trên biến động doanh thu trong dữ liệu 2014; "
-        "không phải cam kết về doanh thu thực tế."
-    )
 
 
 def chat_page(filters):
