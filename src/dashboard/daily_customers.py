@@ -84,7 +84,7 @@ def seasonal_customer_scenarios(daily, months=1, *, simulations=2000, seed=2026)
         raise ValueError("Historical weekdays are incomplete")
     scenarios = {}
     for date in future:
-        analogues = by_season[(date.month, date.weekday)]
+        analogues = by_season[(date.month, date.weekday())]
         pool = analogues if len(analogues) >= 4 else by_weekday[date.weekday()]
         scenarios[date] = rng.choices(pool, k=simulations)
     return pd.DataFrame(scenarios)
