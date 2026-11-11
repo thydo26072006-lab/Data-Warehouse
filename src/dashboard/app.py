@@ -10,6 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES, country_performance, select_correlation_rows
+from daily_customers import daily_purchasing_customers, daily_scenarios, daily_summary
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 from ai_chatbot import configured as ai_configured, answer_ai
 
@@ -389,6 +390,84 @@ def products(filters):
         table(losses, "loss_making_products", "Xem và tải toàn bộ sản phẩm lỗ")
 
 
+
+def daily_customer_forecast(orders, start, end):
+    """Customer-facing daily transaction-based customer planning."""
+    st.subheader("Dự kiến số khách mua hàng mỗi ngày")
+    try:
+        daily = daily_purchasing_customers(orders, start, end)
+        if daily.sum() == 0:
+            st.caption("Chưa có giao dịch trong khoảng thời gian này để ước lượng lượng khách.")
+            return
+        scenario = daily_scenarios(daily)
+    except ValueError:
+        st.caption("Chưa đủ lịch sử giao dịch để ước lượng số khách theo ngày.")
+        return
+
+    st.caption("Ước lượng 7 ngày tiếp theo dựa trên số khách mua hàng theo từng thứ "
+               "trong tuần của giai đoạn được chọn.")
+    baseline_capacity = max(1, int(round(float(daily.quantile(0.75)))))
+    limit = st.number_input("Số khách có thể phục vụ trong một ngày",
+                            min_value=0, value=baseline_capacity, step=1,
+                            key="daily_customer_capacity")
+    days = daily_summary(scenario, limit)
+    expected = float(days.expected.mean())
+    peak = days.loc[days.expected.idxmax()]
+    risk = float(days.over_capacity_pct.mean())
+
+    a, b, c = st.columns(3)
+    a.metric("Khách dự kiến mỗi ngày", number(expected, 0))
+    b.metric("Ngày đông khách nhất", pd.Timestamp(peak.date).strftime("%d/%m") +
+             " · " + number(peak.expected, 0) + " khách")
+    c.metric("Khả năng vượt mức phục vụ", f"{risk:.0f}%")
+    st.caption("Khả năng vượt mức phục vụ là tỷ lệ trung bình các kịch bản có số khách "
+               "cao hơn mức bạn nhập trong 7 ngày tiếp theo.")
+
+    axis = days.date.dt.strftime("%d/%m")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=axis, y=days.high, mode="lines",
+        line=dict(color="#80ACD2", width=0), hoverinfo="skip", showlegend=False
+    ))
+    fig.add_trace(go.Scatter(
+        x=axis, y=days.low, mode="lines", fill="tonexty",
+        fillcolor="rgba(128,172,210,0.23)",
+        line=dict(color="#80ACD2", width=0), name="Khoảng tham khảo",
+        hovertemplate="%{x}: %{y:,.0f} khách (mức thấp)<extra></extra>"
+    ))
+    fig.add_trace(go.Scatter(
+        x=axis, y=days.expected, mode="lines+markers",
+        line=dict(color=NAVY, width=3),
+        marker=dict(size=8, color=NAVY), name="Số khách dự kiến",
+        hovertemplate="%{x}: %{y:,.1f} khách dự kiến<extra></extra>"
+    ))
+    fig.add_hline(y=limit, line_color=ACCENT, line_dash="dash",
+                  annotation_text="Mức phục vụ", annotation_position="top left")
+    fig.update_layout(
+        height=325, margin=dict(l=15, r=20, t=30, b=40),
+        xaxis_title="Ngày", yaxis_title="Khách mua hàng",
+        yaxis=dict(rangemode="tozero", gridcolor="#E7EDF2"),
+        paper_bgcolor=BACKGROUND, plot_bgcolor=BACKGROUND,
+        legend=dict(orientation="h", y=-0.28, x=0),
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig, width="stretch", key="daily_customer_forecast_chart")
+    st.caption("Dải màu thể hiện khoảng biến động tham khảo; đường đậm là số khách "
+               "trung bình dự kiến. Một khách có nhiều đơn trong cùng ngày chỉ tính một lần. "
+               "Dữ liệu không ghi nhận người ghé thăm nhưng không mua hàng.")
+    with st.expander("Xem dự kiến theo từng ngày"):
+        view = days.copy()
+        view["date"] = view.date.dt.strftime("%d/%m/%Y")
+        view = view.rename(columns={"date": "Ngày", "expected": "Khách dự kiến",
+                                    "low": "Mức thấp", "high": "Mức cao",
+                                    "over_capacity_pct": "Khả năng vượt mức (%)"})
+        st.dataframe(view.round(1), hide_index=True, width="stretch")
+        st.caption("Dựa trên các ngày tương ứng trong lịch sử giao dịch, không phản ánh "
+                   "khách đến mà không mua hàng. Đây là mô phỏng để lập kế hoạch, "
+                   "chưa phải dự báo đã được kiểm định ngoài mẫu.")
+
+
+
 def customers(filters):
     st.subheader("Phân khúc khách hàng và hành vi mua sắm")
     orders = customer_orders(filters)
@@ -436,6 +515,7 @@ def customers(filters):
             "segment_vi":"Phân khúc","customers":"Khách hàng","share_pct":"Tỷ trọng (%)",
             "sales":"Doanh thu","profit":"Lợi nhuận"}), hide_index=True, width="stretch")
     st.caption("Các phân khúc trong dữ liệu gốc là Consumer, Corporate và Home Office. Không tự gán Home Office thành khách hàng khác.")
+    daily_customer_forecast(orders, window_start, window_end)
 
     st.subheader("Khách hàng, đơn hàng và vận chuyển")
     top = olap("07_top_customers", filters)
