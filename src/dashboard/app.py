@@ -450,6 +450,13 @@ def daily_customer_forecast(orders, start, end):
                           "expected": "Lượt khách dự kiến",
                           "low": "Mức thấp", "high": "Mức cao"})
 
+    comparison = None
+    if months == 12:
+        previous_months = daily.resample("MS").sum()
+        comparison_dates = forecast.month - pd.DateOffset(years=1)
+        if all(date in previous_months.index for date in comparison_dates):
+            comparison = [int(previous_months.loc[date]) for date in comparison_dates]
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=x, y=upper, mode="lines",
@@ -460,6 +467,11 @@ def daily_customer_forecast(orders, start, end):
         fillcolor="rgba(128,172,210,0.23)",
         line=dict(color="#80ACD2", width=0),
         name="Khoảng biến động tham khảo"))
+    if comparison is not None:
+        fig.add_trace(go.Scatter(
+            x=x, y=comparison, mode="lines+markers",
+            line=dict(color="#9AA5B4", dash="dash", width=2),
+            marker=dict(size=5), name="Cùng tháng năm trước"))
     fig.add_trace(go.Scatter(
         x=x, y=y, mode="lines+markers",
         line=dict(color=NAVY, width=3),
