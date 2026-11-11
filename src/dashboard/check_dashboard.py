@@ -156,10 +156,17 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Phân khúc khách hàng và hành vi mua sắm",
                       [x.value for x in app.subheader])
-        self.assertIn("Dự kiến số khách mua hàng mỗi ngày",
+        self.assertIn("Dự kiến số khách mua hàng",
                       [x.value for x in app.subheader])
         self.assertIn("Khách dự kiến mỗi ngày", [x.label for x in app.metric])
-        self.assertEqual(len([x for x in app.number_input if x.key == "daily_customer_capacity"]), 1)
+        horizon = next(x for x in app.radio if x.key == "daily_customer_horizon")
+        self.assertEqual(horizon.value, "1 tháng")
+        horizon.set_value("12 tháng").run()
+        self.assert_clean(app)
+        self.assertIn("Tổng lượt khách dự kiến trong 12 tháng",
+                      [x.label for x in app.metric])
+        next(x for x in app.radio if x.key == "daily_customer_horizon").set_value("1 tháng").run()
+        self.assert_clean(app)
         selector = next(x for x in app.selectbox if x.key == "customer_lookback")
         self.assertEqual(selector.value, 12)
         for months in (3, 6, 12):
