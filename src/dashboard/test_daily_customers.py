@@ -3,7 +3,8 @@ import unittest
 
 import pandas as pd
 
-from daily_customers import daily_purchasing_customers, daily_scenarios, daily_summary
+from daily_customers import (daily_purchasing_customers, daily_scenarios,
+                             daily_summary, seasonal_customer_scenarios, monthly_summary)
 
 
 class DailyCustomerSimulationTests(unittest.TestCase):
@@ -47,6 +48,31 @@ class DailyCustomerSimulationTests(unittest.TestCase):
         self.assertTrue((low.over_capacity_pct <= 100).all())
         self.assertTrue((high.low <= high.high).all())
         self.assertTrue((high.expected >= 0).all())
+
+    def test_one_calendar_month_and_twelve_months(self):
+        history = daily_purchasing_customers(self.orders, self.start, self.end)
+        one = seasonal_customer_scenarios(history, months=1, simulations=300, seed=7)
+        year = seasonal_customer_scenarios(history, months=12, simulations=300, seed=7)
+        self.assertEqual(len(one.columns), 31)
+        self.assertEqual(one.columns[0], pd.Timestamp("2015-01-01"))
+        self.assertEqual(one.columns[-1], pd.Timestamp("2015-01-31"))
+        self.assertEqual(len(year.columns), 365)
+        self.assertEqual(year.columns[-1], pd.Timestamp("2015-12-31"))
+        monthly = monthly_summary(year)
+        self.assertEqual(len(monthly), 12)
+        self.assertEqual(monthly.month.iloc[0], pd.Timestamp("2015-01-01"))
+        self.assertAlmostEqual(monthly.expected.sum(), year.sum(axis=1).mean())
+        pd.testing.assert_frame_equal(one, seasonal_customer_scenarios(
+            history, months=1, simulations=300, seed=7))
+
+    def test_seasonal_month_weekday_matching(self):
+        dates = pd.date_range("2011-01-01", "2014-12-31", freq="D")
+        history = pd.Series([v.month * 10 + v.weekday() for v in dates],
+                            index=dates)
+        scenario = seasonal_customer_scenarios(history, months=12,
+                                               simulations=200, seed=20)
+        for date in scenario.columns:
+            self.assertEqual(set(scenario[date]), {date.month * 10 + date.weekday()})
 
     def test_reject_short_or_invalid_period(self):
         with self.assertRaises(ValueError):
