@@ -392,109 +392,71 @@ def products(filters):
 
 
 def daily_customer_forecast(orders, start, end):
-    """Customer-readable simulations over the next calendar month or year."""
-    st.subheader("Dự kiến số khách mua hàng")
-    st.caption("Dựa trên số khách có phát sinh giao dịch mỗi ngày trong dữ liệu lịch sử.")
-    mode = st.radio("Khoảng thời gian dự kiến", ["1 tháng", "12 tháng"],
-                    horizontal=True, key="daily_customer_horizon")
-    months = 1 if mode == "1 tháng" else 12
-    # Use all available transaction history before the selected cutoff to
-    # make previous years' seasonal patterns available for annual comparison.
-    history_start = pd.Timestamp("2011-01-01")
+    """Compare the next 12 months of purchasing-customer visit scenarios."""
+    st.subheader("Dự kiến lượng khách mua hàng trong 12 tháng")
+    st.caption("So sánh số lượt khách có giao dịch theo từng tháng, dựa trên lịch sử mua hàng.")
     try:
-        daily = daily_purchasing_customers(orders, history_start, end)
+        daily = daily_purchasing_customers(orders, pd.Timestamp("2011-01-01"), end)
         if daily.sum() == 0:
             st.caption("Chưa có giao dịch trong giai đoạn này để ước lượng lượng khách.")
             return
-        scenario = seasonal_customer_scenarios(daily, months=months)
+        scenario = seasonal_customer_scenarios(daily, months=12)
+        forecast = monthly_summary(scenario)
     except ValueError:
-        st.caption("Chưa có đủ lịch sử giao dịch để đưa ra kết quả tham khảo.")
+        st.caption("Chưa đủ dữ liệu lịch sử để đưa ra kết quả tham khảo.")
         return
 
-    if months == 1:
-        forecast = daily_summary(scenario, capacity=0)
-        avg = float(forecast.expected.mean())
-        high_day = forecast.loc[forecast.expected.idxmax()]
-        left, middle, right = st.columns(3)
-        left.metric("Khách dự kiến mỗi ngày", number(avg, 0))
-        middle.metric("Ngày đông khách nhất", pd.Timestamp(high_day.date).strftime("%d/%m"))
-        right.metric("Khách dự kiến ngày đông nhất", number(high_day.expected, 0))
-        st.caption("Tháng " + forecast.date.iloc[0].strftime("%m/%Y") +
-                   " · Mức dự kiến là trung bình các kịch bản mô phỏng.")
-        x = forecast.date.dt.strftime("%d/%m")
-        y = forecast.expected
-        lower, upper = forecast.low, forecast.high
-        x_title, y_title = "Ngày", "Khách mua hàng/ngày"
-        table_rows = forecast[["date", "expected", "low", "high"]].copy()
-        table_rows["date"] = table_rows.date.dt.strftime("%d/%m/%Y")
-        table_rows = table_rows.rename(columns={"date": "Ngày",
-                          "expected": "Khách dự kiến",
-                          "low": "Mức thấp", "high": "Mức cao"})
-    else:
-        forecast = monthly_summary(scenario)
-        total = float(forecast.expected.sum())
-        busiest = forecast.loc[forecast.expected.idxmax()]
-        left, middle, right = st.columns(3)
-        left.metric("Tổng lượt khách dự kiến trong 12 tháng", number(total, 0))
-        middle.metric("Trung bình mỗi tháng", number(total / 12, 0))
-        right.metric("Tháng dự kiến cao nhất", pd.Timestamp(busiest.month).strftime("%m/%Y"))
-        st.caption("Tổng lượt khách được cộng từ số khách mua theo từng ngày; "
-                   "một khách mua ở nhiều ngày có thể được tính nhiều lần.")
-        x = forecast.month.dt.strftime("%m/%Y")
-        y = forecast.expected
-        lower, upper = forecast.low, forecast.high
-        x_title, y_title = "Tháng", "Tổng lượt khách mua theo ngày"
-        table_rows = forecast[["month", "expected", "low", "high"]].copy()
-        table_rows["month"] = table_rows.month.dt.strftime("%m/%Y")
-        table_rows = table_rows.rename(columns={"month": "Tháng",
-                          "expected": "Lượt khách dự kiến",
-                          "low": "Mức thấp", "high": "Mức cao"})
+    total = float(forecast.expected.sum())
+    busiest = forecast.loc[forecast.expected.idxmax()]
+    left, middle, right = st.columns(3)
+    left.metric("Tổng lượt khách dự kiến trong 12 tháng", number(total, 0))
+    middle.metric("Trung bình mỗi tháng", number(total / 12, 0))
+    right.metric("Tháng dự kiến cao nhất", pd.Timestamp(busiest.month).strftime("%m/%Y"))
+    st.caption("Tổng lượt khách được cộng từ số khách mua theo từng ngày; "
+               "một khách mua ở nhiều ngày có thể được tính nhiều lần.")
 
-    comparison = None
-    if months == 12:
-        previous_months = daily.resample("MS").sum()
-        comparison_dates = forecast.month - pd.DateOffset(years=1)
-        if all(date in previous_months.index for date in comparison_dates):
-            comparison = [int(previous_months.loc[date]) for date in comparison_dates]
-
+    x = forecast.month.dt.strftime("%m/%Y")
+    previous_months = daily.resample("MS").sum()
+    comparison_dates = forecast.month - pd.DateOffset(years=1)
+    comparison = ([int(previous_months.loc[date]) for date in comparison_dates]
+                  if all(date in previous_months.index for date in comparison_dates) else None)
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=x, y=upper, mode="lines",
+        x=x, y=forecast.high, mode="lines",
         line=dict(color="#80ACD2", width=0),
         hoverinfo="skip", showlegend=False))
     fig.add_trace(go.Scatter(
-        x=x, y=lower, mode="lines", fill="tonexty",
+        x=x, y=forecast.low, mode="lines", fill="tonexty",
         fillcolor="rgba(128,172,210,0.23)",
-        line=dict(color="#80ACD2", width=0),
-        name="Khoảng biến động tham khảo"))
+        line=dict(color="#80ACD2", width=0), name="Khoảng biến động tham khảo"))
     if comparison is not None:
         fig.add_trace(go.Scatter(
             x=x, y=comparison, mode="lines+markers",
             line=dict(color="#9AA5B4", dash="dash", width=2),
             marker=dict(size=5), name="Cùng tháng năm trước"))
     fig.add_trace(go.Scatter(
-        x=x, y=y, mode="lines+markers",
+        x=x, y=forecast.expected, mode="lines+markers",
         line=dict(color=NAVY, width=3),
-        marker=dict(size=7, color=NAVY),
-        name="Mức dự kiến"))
+        marker=dict(size=7, color=NAVY), name="Mức dự kiến"))
     fig.update_layout(
         height=345, margin=dict(l=20, r=15, t=20, b=45),
-        xaxis_title=x_title, yaxis_title=y_title,
+        xaxis_title="Tháng", yaxis_title="Tổng lượt khách mua theo ngày",
         yaxis=dict(rangemode="tozero", gridcolor="#E7EDF2"),
         paper_bgcolor=BACKGROUND, plot_bgcolor=BACKGROUND,
         legend=dict(orientation="h", y=-0.3, x=0),
         hovermode="x unified")
     st.plotly_chart(fig, width="stretch", key="daily_customer_forecast_chart")
-    st.caption("Đường đậm: mức dự kiến. Dải xanh: khoảng biến động từ dữ liệu lịch sử. "
-               "Mô phỏng mang tính tham khảo, chưa được kiểm định độ chính xác ngoài mẫu.")
-    if months == 12:
-        st.markdown("**So sánh 12 tháng**")
-        st.caption("Các mức dự kiến phản ánh khuôn mẫu giao dịch trong dữ liệu cũ, "
-                   "không tự dự đoán được xu hướng tăng trưởng hay thay đổi thị trường.")
-    with st.expander("Xem số liệu chi tiết"):
-        st.dataframe(table_rows.round(1), hide_index=True, width="stretch")
-        st.caption("Khách phát sinh giao dịch không đồng nghĩa với tổng lượt người đến "
-                   "siêu thị; dữ liệu không ghi nhận người ghé thăm nhưng không mua hàng.")
+    st.caption("Đường đậm: mức dự kiến. Dải xanh: khoảng biến động tham khảo. "
+               "Đường đứt: cùng tháng năm trước (nếu có dữ liệu). "
+               "Mô phỏng chưa được kiểm định độ chính xác ngoài mẫu.")
+    with st.expander("Xem số liệu 12 tháng"):
+        view = forecast[["month", "expected", "low", "high"]].copy()
+        view["month"] = view.month.dt.strftime("%m/%Y")
+        view = view.rename(columns={"month": "Tháng", "expected": "Lượt khách dự kiến",
+                                    "low": "Mức thấp", "high": "Mức cao"})
+        st.dataframe(view.round(1), hide_index=True, width="stretch")
+        st.caption("Lượt khách mua theo ngày khác với khách hàng duy nhất của cả tháng "
+                   "và không bao gồm người đến siêu thị nhưng không phát sinh giao dịch.")
 
 
 def customers(filters):
