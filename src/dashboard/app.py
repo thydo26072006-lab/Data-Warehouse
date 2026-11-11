@@ -495,6 +495,7 @@ def customers(filters):
                "mẫu số là những khách đã mua trước kỳ. Đây chỉ là đại diện churn, không xác nhận "
                "khách thực sự rời bỏ. Tất cả kết quả chịu giới hạn lịch sử bắt đầu từ 2011.")
     st.metric("Tỷ lệ mua lặp trong kỳ (từ 2 đơn trở lên)", number(kpis["repeat_pct"], 2) + "%")
+    daily_customer_forecast(orders, window_start, window_end)
     segments = segment_breakdown(orders, window_start, window_end)
     if not segments.empty:
         segments["segment_vi"] = segments.segment.map({
@@ -515,7 +516,6 @@ def customers(filters):
             "segment_vi":"Phân khúc","customers":"Khách hàng","share_pct":"Tỷ trọng (%)",
             "sales":"Doanh thu","profit":"Lợi nhuận"}), hide_index=True, width="stretch")
     st.caption("Các phân khúc trong dữ liệu gốc là Consumer, Corporate và Home Office. Không tự gán Home Office thành khách hàng khác.")
-    daily_customer_forecast(orders, window_start, window_end)
 
     st.subheader("Khách hàng, đơn hàng và vận chuyển")
     top = olap("07_top_customers", filters)
