@@ -156,6 +156,10 @@ class DashboardChecks(unittest.TestCase):
         self.assert_clean(app)
         self.assertIn("Phân khúc khách hàng và hành vi mua sắm",
                       [x.value for x in app.subheader])
+        self.assertIn("Dự kiến số khách mua hàng mỗi ngày",
+                      [x.value for x in app.subheader])
+        self.assertIn("Khách dự kiến mỗi ngày", [x.label for x in app.metric])
+        self.assertEqual(len([x for x in app.number_input if x.key == "daily_customer_capacity"]), 1)
         selector = next(x for x in app.selectbox if x.key == "customer_lookback")
         self.assertEqual(selector.value, 12)
         for months in (3, 6, 12):
