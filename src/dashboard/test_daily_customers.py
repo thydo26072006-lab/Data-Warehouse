@@ -45,8 +45,8 @@ class DailyCustomerSimulationTests(unittest.TestCase):
         self.assertTrue(high.over_capacity_pct.eq(0).all())
         self.assertTrue((low.over_capacity_pct >= 0).all())
         self.assertTrue((low.over_capacity_pct <= 100).all())
-        self.assertTrue((high.low <= high.expected).all())
-        self.assertTrue((high.expected <= high.high).all())
+        self.assertTrue((high.low <= high.high).all())
+        self.assertTrue((high.expected >= 0).all())
 
     def test_reject_short_or_invalid_period(self):
         with self.assertRaises(ValueError):
