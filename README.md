@@ -2,7 +2,7 @@
 
 **Học kỳ 261 · Lớp L02 · Nhóm 5 · Global Superstore**
 
-Nhánh này tập hợp bộ tệp nộp theo Mục 5.1 của đề bài. Các nhánh làm việc và triển khai được giữ riêng.
+Nhánh BTL đã đồng bộ bộ tệp theo Mục 5.1 từ `nop-bai/co4031-hk261`. Xem [hướng dẫn chạy trên Windows, Streamlit Cloud và ghi chú phát triển](docs/BTL_KHODL_HUONG_DAN.md).
 
 | Thành phần | Vị trí |
 | --- | --- |
