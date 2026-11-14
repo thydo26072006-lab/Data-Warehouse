@@ -448,7 +448,7 @@ def daily_customer_forecast(orders, start, end):
     st.plotly_chart(fig, width="stretch", key="daily_customer_forecast_chart")
     st.caption("Đường đậm: mức dự kiến. Dải xanh: khoảng biến động tham khảo. "
                "Đường đứt: cùng tháng năm trước (nếu có dữ liệu). "
-               "Mô phỏng chưa được kiểm định độ chính xác ngoài mẫu.")
+               "Kiểm định 2013–2014: WAPE mô phỏng 32,61%, đối chứng 21,53%. Dải P10–P90 là dải kịch bản, không phải khoảng dự báo đã hiệu chỉnh.")
     with st.expander("Xem số liệu 12 tháng"):
         view = forecast[["month", "expected", "low", "high"]].copy()
         view["month"] = view.month.dt.strftime("%m/%Y")

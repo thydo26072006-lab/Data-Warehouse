@@ -1,0 +1,119 @@
+{
+  "task": "CV04",
+  "completed_at": "2026-11-14T00:32:17+07:00",
+  "tests": {
+    "run": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  "production_algorithm_changed": false,
+  "evaluation": {
+    "created_at": "2026-11-14T00:30:27.077126+07:00",
+    "target": "Sum of daily distinct purchasing customers; same customer on different days counts again.",
+    "configuration": {
+      "simulations": 2000,
+      "seed": 2026,
+      "horizon_months": 12,
+      "band": "P10-P90",
+      "sampling": "month + weekday; weekday fallback if fewer than 4 observations",
+      "missing_transaction_days": "zero-filled calendar days",
+      "minimum_history_days": 28
+    },
+    "protocol": "Two fixed-origin 12-month holdouts: train 2011-2012/test 2013; train 2011-2013/test 2014. No parameter search. Baseline: same calendar month last year.",
+    "metrics": {
+      "2013": {
+        "months": 12,
+        "monte_carlo": {
+          "mae": 156.71658333333332,
+          "wape_pct": 27.582854209445586,
+          "bias_pct": -27.582854209445586
+        },
+        "seasonal_naive": {
+          "mae": 116.0,
+          "wape_pct": 20.4165444411851,
+          "bias_pct": -20.4165444411851
+        },
+        "p10_p90_coverage_pct": 0.0
+      },
+      "2014": {
+        "months": 12,
+        "monte_carlo": {
+          "mae": 267.33175,
+          "wape_pct": 36.51657370517929,
+          "bias_pct": -36.51657370517929
+        },
+        "seasonal_naive": {
+          "mae": 163.91666666666666,
+          "wape_pct": 22.390438247011954,
+          "bias_pct": -22.390438247011954
+        },
+        "p10_p90_coverage_pct": 0.0
+      },
+      "pooled": {
+        "months": 24,
+        "monte_carlo": {
+          "mae": 212.02416666666667,
+          "wape_pct": 32.61283086585913,
+          "bias_pct": -32.61283086585913
+        },
+        "seasonal_naive": {
+          "mae": 139.95833333333334,
+          "wape_pct": 21.527911299109146,
+          "bias_pct": -21.527911299109146
+        },
+        "p10_p90_coverage_pct": 0.0
+      }
+    },
+    "forecast_2015": {
+      "total": 6389.277500000001,
+      "monthly_average": 532.4397916666668,
+      "peak_month": "2015-12-01"
+    },
+    "limitations": [
+      "Only 24 monthly holdout observations; overlapping training periods.",
+      "Scenario bands describe historical resampling variation, not calibrated prediction intervals.",
+      "Independent daily sampling does not model temporal dependence or extrapolate growth.",
+      "No actual 2015 observations exist in the dataset; forecast 2015 cannot be scored."
+    ]
+  },
+  "report": "results/report/CV04_MonteCarlo_KiemDinh.md",
+  "pdf_integration": "Pending under CV05/CV11; no claim original PDF was edited.",
+  "files": [
+    {
+      "path": "src/dashboard/daily_customers.py",
+      "sha256": "027ffcdc333e05fbd2269f175459130feb15fbd02e261a7b559efe9fb782fb06"
+    },
+    {
+      "path": "src/dashboard/test_daily_customers.py",
+      "sha256": "4631508f5569ae678f33dc1029d9f37ef33bfe83a0ceff5cc6df0fc6d7302d59"
+    },
+    {
+      "path": "tools/evaluate_monte_carlo.py",
+      "sha256": "2f69d89585c7f47eccdc83d37b7c6c72699f69344d1b6c35167ff7031ed257c4"
+    },
+    {
+      "path": "results/report/CV04_MonteCarlo_KiemDinh.md",
+      "sha256": "13fd67919eceb8b21d5bc0350d0381e3d7ad4abe8621df6c7bf931a5b9c0dba5"
+    },
+    {
+      "path": "results/monte_carlo/evaluation.json",
+      "sha256": "58f8ab4d11ab80adbb9a4ca43fe3bb72b055a4e85f8c6d0934ad4669fa3fa00d"
+    },
+    {
+      "path": "results/monte_carlo/backtest_monthly.csv",
+      "sha256": "a1d14dae2b043c2ac702fdb5db4b59ba70cbb3a5a89bf7c6ebfe9304f0210c39"
+    },
+    {
+      "path": "results/monte_carlo/forecast_2015_monthly.csv",
+      "sha256": "ae918a4ec67a636f499d326b210d22f7b6e40758be4b039125d40b3f6c55562a"
+    },
+    {
+      "path": "evidence/monte-carlo-tests-cv04.log",
+      "sha256": "800f9cdcea0b19c9452c276c0df7d5ef4c79b0614ba9ac69d4ba7b39c50ced64"
+    },
+    {
+      "path": "evidence/monte-carlo-evaluation.log",
+      "sha256": "d4c8233a2146af3165c9983b0cbb55a668d5fc72deb75945590dbd3bc5aef467"
+    }
+  ]
+}

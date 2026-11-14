@@ -78,10 +78,39 @@ class DailyCustomerSimulationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             daily_purchasing_customers(self.orders, self.start, self.start + pd.Timedelta(days=20))
         history = daily_purchasing_customers(self.orders, self.start, self.end)
-        with self.assertRaises(ValueError):
-            daily_scenarios(history.iloc[1:])
+        # Removing the first day leaves a valid consecutive 91-day history.
+        # Exercise an actually short history and an internal calendar gap.
+        for invalid in (history.iloc[:27], history.drop(history.index[10])):
+            with self.subTest(days=len(invalid)):
+                with self.assertRaises(ValueError):
+                    daily_scenarios(invalid)
+                with self.assertRaises(ValueError):
+                    seasonal_customer_scenarios(invalid)
         with self.assertRaises(ValueError):
             daily_summary(pd.DataFrame(), capacity=1)
+
+    def test_continuous_history_can_start_after_original_first_day(self):
+        history = daily_purchasing_customers(self.orders, self.start, self.end).iloc[1:]
+        scenarios = seasonal_customer_scenarios(history, months=12, simulations=100)
+        self.assertEqual(scenarios.shape, (100, 365))
+        self.assertEqual(scenarios.columns[0], pd.Timestamp('2015-01-01'))
+
+    def test_sparse_season_uses_only_historical_weekday_pool(self):
+        dates = pd.date_range('2014-10-01', '2014-12-31', freq='D')
+        history = pd.Series(dates.weekday, index=dates)
+        scenarios = seasonal_customer_scenarios(history, months=1, simulations=100)
+        # No January observations exist: same-weekday fallback must apply.
+        for date in scenarios.columns:
+            self.assertEqual(set(scenarios[date]), {date.weekday()})
+
+    def test_monthly_summary_counts_repeat_customers_on_different_days(self):
+        days = pd.to_datetime(['2015-01-01', '2015-01-02'])
+        orders = pd.DataFrame({'order_date': days, 'customer_id': ['A', 'A']})
+        daily = daily_purchasing_customers(orders, '2015-01-01', '2015-02-01')
+        self.assertEqual(daily.sum(), 2)
+        self.assertEqual(orders.customer_id.nunique(), 1)
+        summary = monthly_summary(pd.DataFrame([daily.values], columns=daily.index))
+        self.assertEqual(summary.expected.iloc[0], 2)
 
 
 if __name__ == "__main__":

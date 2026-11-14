@@ -1,184 +1,45 @@
-# Bàn giao CO4031 — Nhóm 5
+# CO4031 — Kho dữ liệu và Hệ hỗ trợ Quyết định
 
-Đây là bản bàn giao các phần đã làm để thành viên tiếp theo hoàn thiện bộ nộp theo §5.1 của Assignment. Báo cáo chính thức là `KDL_Main.pdf`; mã nguồn lấy từ bản Next_step đã nghiệm thu.
+**Học kỳ 261 · Lớp L02 · Nhóm 5 · Global Superstore**
 
-## Thành phần
+Nhánh này tập hợp bộ tệp nộp theo Mục 5.1 của đề bài. Các nhánh làm việc và triển khai được giữ riêng.
 
-- `KDL_Main.pdf`: báo cáo hiện tại.
-- `src/`: SQL, ETL, notebook khảo sát, dự báo, dashboard, mã kiểm thử và các requirements.
-- `data/`: CSV nguồn và CSV processed chính thức, đủ 51.290 dòng.
-- `results/forecasting/`: 5 file dashboard cần trực tiếp để hiển thị DSS đã chạy.
-- `results/warehouse/olap/`: 12 CSV chuẩn dùng bởi kiểm thử truy vấn/dashboard.
-- `.streamlit/config.toml`: cấu hình giao diện; `.gitignore`: loại runtime và cấu hình riêng khi quản lý mã nguồn.
+| Thành phần | Vị trí |
+| --- | --- |
+| Báo cáo PDF | [KDL_Main.pdf](KDL_Main.pdf) — báo cáo TeXPage hiện có và phụ lục CV04 ở cuối PDF |
+| Slide thuyết trình PDF | [Slide_CO4031.pdf](Slide_CO4031.pdf) — 44 slide |
+| Mã nguồn SQL, ETL, OLAP, DSS, Streamlit | [src/](src/) |
+| Dữ liệu gốc và dữ liệu đã xử lý | [data/](data/) — 51.290 dòng, nguồn [Global Superstore trên Kaggle](https://www.kaggle.com/datasets/fatihilhan/global-superstore-dataset) |
+| Kết quả Holt–Winters và 12 truy vấn OLAP | [results/forecasting/](results/forecasting/) và [results/warehouse/olap/](results/warehouse/olap/) |
+| Kiểm định và mã tái lập Monte Carlo | [results/monte_carlo/](results/monte_carlo/), [tools/evaluate_monte_carlo.py](tools/evaluate_monte_carlo.py) và [evidence/](evidence/) |
 
-Các kết quả trong `results/` là đầu vào cần thiết cho ứng dụng/kiểm thử, không phải tập log tiến độ. Không kèm môi trường Python, PostgreSQL binaries/data, mật khẩu, cache, Git history, log, file đề xuất hoặc các bản báo cáo trùng.
+## Chạy hệ thống
 
-## Phần đã hoàn thành
+Cần Python 3.12, PostgreSQL và tiện ích dòng lệnh `psql`. Sau khi tạo và kích hoạt môi trường Python, cài thư viện từ thư mục gốc:
 
-Star Schema 1 Fact + 5 Dimension, 6 FK; ETL, nạp lại và rollback; 12 truy vấn OLAP; DSS dự báo Holt–Winters; frontend Streamlit 5 trang. Bản nguồn đã chạy 8 kiểm thử tiền xử lý, 4 kiểm thử dự báo, 8 kiểm thử ứng dụng ở bản bàn giao gốc (đã bổ sung 2 test mới, chưa chạy lại trên máy này), kiểm tra Edge và 53 đối soát. Số liệu dự báo làm tròn khớp báo cáo.
-
-## Cập nhật Dashboard – OLAP và chẩn đoán dự báo
-
-- **Tổng quan:** bổ sung biểu đồ ROLLUP có thể chọn Năm / Quý / Tháng, lấy trực tiếp từ truy vấn `03_time_rollup`.
-- **Sản phẩm & thị trường:** chọn ngành hàng → phân nhóm → xem top sản phẩm và tải bảng chi tiết theo đúng khóa ghép `product_id + product_name`; bổ sung heatmap biên lợi nhuận Category × Market từ các dòng chi tiết của `09_market_category_cube`.
-- **Dự báo doanh thu:** giữ nguyên các file kết quả Holt–Winters hiện có; thêm biểu đồ sai số dự báo cuốn chiếu 2014, WAPE trên các tháng doanh thu thực tế giảm, số lần đúng chiều tăng/giảm và Top 5 tháng sai số lớn.
-- **Kiểm thử:** bổ sung hai test giao diện/tích hợp vào `src/dashboard/check_dashboard.py`. Các test mới cần chạy với PostgreSQL cục bộ đã nạp dữ liệu, theo lệnh kiểm tra bên dưới.
-- **Phạm vi:** chưa huấn luyện mô hình mới, chưa thay đổi ETL, Star Schema, 12 truy vấn nguồn và giá trị dự báo tháng 01/2015. Dự báo là toàn thị trường và không chịu bộ lọc OLAP. Không suy diễn chu kỳ kinh tế 4 năm từ 48 tháng dữ liệu.
-
-## Cập nhật 04/11/2026 — Giao diện và phân tích DSS mở rộng
-
-- Giao diện nền sáng xanh/kem, nhấn cam; bổ sung donut và bar chart tổng quan; các thẻ KPI tự điều chỉnh cỡ chữ.
-- Bản đồ doanh thu/biên lợi nhuận theo quốc gia trên thế giới hoặc tiểu bang Hoa Kỳ (Plotly; cần cài lại requirements).
-- Heatmap Category × Market có chọn năm 2011–2014 và toàn giai đoạn; vẫn chịu bộ lọc chung.
-- Tỷ lệ dòng bán hàng bị lỗ theo mức chiết khấu, tính từ `loss_lines/sales_lines` trong OLAP 12.
-- Khách hàng mới/quay lại, tỷ lệ mua lặp, khách không hoạt động theo 3/6/12 tháng; cơ cấu khách Consumer, Corporate, Home Office.
-- Tương quan Pearson: doanh thu–lợi nhuận, chiết khấu–lợi nhuận, doanh thu–chiết khấu. Hệ số tính trên toàn bộ dòng lọc; scatter chỉ lấy mẫu để hiển thị.
-- Tự động nhận xét chẩn đoán sai số dự báo trên năm 2014; không thay đổi mô hình và file dự báo.
-- Cảnh báo: khách không hoạt động là *churn proxy*, không phải quan sát thực tế khách rời bỏ. Không coi tương quan là quan hệ nhân quả.
-- Nguồn truy vấn mới: `src/dashboard/insights.py`; hướng dẫn hình ảnh và nội dung báo cáo tại `results/report/dashboard_analytics_addendum.md`.
-
-**Cập nhật bản tải về trên Windows (CMD trong thư mục gốc của project):**
-
-Nếu project được `git clone`, dùng `git checkout import/btl-khodl` và `git pull origin import/btl-khodl`. Nếu tải ZIP, tải ZIP mới của nhánh hoặc thay đồng thời `src/dashboard/app.py`, `src/dashboard/insights.py`, `src/dashboard/check_dashboard.py` và `src/dashboard/requirements.txt`. Chỉ thay `app.py` là chưa đủ.
-
-```cmd
-py -m pip install -r src/dashboard/requirements.txt
-set "SUPERSTORE_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/superstore_dw"
-set "PGPASSFILE=%TEMP%\pgpass-superstore.conf"
-py -m streamlit run src/dashboard/app.py
+```bash
+python -m pip install -r src/dashboard/requirements.txt -r src/forecasting/requirements.txt
 ```
 
-Chạy kiểm thử ở CMD khác (thiết lập lại các biến môi trường):
+1. Tạo một cơ sở dữ liệu PostgreSQL trống. Thiết lập `SUPERSTORE_DATABASE_URL` với chuỗi kết nối tới cơ sở dữ liệu đó. Không commit thông tin kết nối.
+2. Chạy các lệnh sau từ gốc repo. Có thể dùng dữ liệu processed và kết quả Holt–Winters đã kèm sẵn nếu dữ liệu kho khớp với bản nộp.
 
-```cmd
-py src/dashboard/check_dashboard.py
+```bash
+python src/etl/preprocess.py --check-baseline
+python src/warehouse/warehouse.py all
+python src/forecasting/forecast.py
+python -m streamlit run src/dashboard/app.py
 ```
 
-Các bài test mới **chưa được xác nhận PASS** trên máy người nhận. Nên kiểm tra lại dữ liệu PostgreSQL cục bộ và lưu ảnh minh chứng sau khi chạy.
+## Kiểm tra có thể chạy độc lập
 
-## Cập nhật biểu đồ và KPI khách hàng (04/11/2026)
-
-- Biểu đồ donut cơ cấu khách hàng và cơ cấu doanh thu theo ngành hàng hiển thị phần trăm trực tiếp.
-- KPI **Tỷ lệ khách hàng quay lại** thay cho tỷ lệ mua lặp: khách hoạt động đã phát sinh đơn trước kỳ chia tổng số khách hoạt động trong kỳ. Đây không phải tỷ lệ mua lặp trong toàn bộ lịch sử.
-- Boxplot doanh thu theo thị trường, ngành hàng hoặc tổ hợp thị trường × ngành hàng, phân phối trên **dòng giao dịch** (không phải tổng doanh thu của thị trường). Dữ liệu lấy từ PostgreSQL qua `insights.sales_lines`.
-- Font Nunito với phông dự phòng Segoe UI; bản đồ và Plotly donut cũng sử dụng Nunito.
-- File thay đổi: `src/dashboard/app.py`, `src/dashboard/insights.py`, `src/dashboard/check_dashboard.py`. Các thư viện Plotly đã nằm trong `src/dashboard/requirements.txt`.
-- Chưa có xác nhận kết quả kiểm thử tích hợp trên PostgreSQL cho commit này: chạy `py -u src/dashboard/check_dashboard.py` ở terminal CMD đã cấu hình `SUPERSTORE_DATABASE_URL` và `PGPASSFILE`.
-
-## Cập nhật 04/11/2026 — Donut có % và chatbot dữ liệu nội bộ
-
-- Tất cả biểu đồ tròn/donut trong Streamlit sử dụng chung hàm `donut_with_percent` với nhãn **phần trăm hiển thị bên ngoài lát cắt**; bao gồm cơ cấu doanh thu theo ngành hàng, doanh thu theo phân khúc ở trang Tổng quan và cơ cấu số khách ở trang Khách hàng.
-- Trang **Hỏi đáp dữ liệu** cung cấp chatbot quy tắc (không dùng LLM, không yêu cầu API key, không phát sinh chi phí token), dùng các truy vấn OLAP và truy vấn phân tích **chỉ đọc** từ PostgreSQL.
-- Chatbot hỗ trợ câu hỏi tiếng Việt có/không dấu về tổng doanh thu, lợi nhuận, năm 2011–2014, ngành hàng, thị trường, xếp hạng quốc gia, phân khúc/khách quay lại, tỷ lệ lỗ theo chiết khấu và hệ số tương quan. Câu ngoài phạm vi hoặc không khớp mẫu được trả lời bằng thông báo giới hạn rõ ràng.
-- Chatbot **không phải mô hình ngôn ngữ tự do**: không tự xây dựng SQL từ câu hỏi, không trả lời mọi biến thể câu hỏi hoặc phân tích ngoài dữ liệu.
-- Bộ lọc tháng, thị trường và ngành hàng áp dụng lên câu trả lời; khi đổi phạm vi phân tích, lịch sử hội thoại hiển thị được xóa để tránh hiểu nhầm kết quả cũ.
-- Mã mới: `src/dashboard/chatbot.py`; đồng thời cập nhật `src/dashboard/app.py`, `src/dashboard/check_dashboard.py`.
-- Chưa chạy lại kiểm thử trên PostgreSQL thực của người nhận. Cần chạy `py -u src/dashboard/check_dashboard.py` (bài kiểm thử mới cho chatbot), đồng thời kiểm tra trực quan nhãn % trên trình duyệt.
-- Nếu dùng ZIP hoặc đồng bộ thủ công, **phải thêm cả chatbot.py** vào thư mục `src/dashboard` trước khi chạy Streamlit. Không cần cài thêm dependency.
-
-## Ma trận tương quan Pearson mở rộng (05/11/2026)
-
-- Trang **Khách hàng & đơn hàng** có ma trận Pearson chú thích từng ô: doanh thu, lợi nhuận, số lượng, chiết khấu (%), phí vận chuyển, lợi nhuận/đơn vị và biên lợi nhuận (%).
-- Tính trên **dòng giao dịch** từ PostgreSQL, theo khoảng thời gian, thị trường và ngành hàng đang chọn. Không lấy hệ số trong ảnh mẫu làm số liệu của nhóm.
-- Có checkbox **Chỉ phân tích các quốc gia có tổng lợi nhuận dương**. Số nước được tính động theo dữ liệu đã lọc, không gán cứng là 117.
-- Giá trị `r` và nhận xét về các cặp quan trọng được sinh từ số liệu hiện hành. Tương quan không phải quan hệ nhân quả; chỉ số tỷ số được tạo từ biến thành phần cần diễn giải thận trọng.
-- File thay đổi: `src/dashboard/insights.py`, `src/dashboard/app.py`, `src/dashboard/check_dashboard.py`. Không cần cài thêm thư viện.
-- Cần chạy lại `py -u src/dashboard/check_dashboard.py` với PostgreSQL thực để xác nhận tất cả tests sau cập nhật.
-
-## So sánh tương quan giữa các nhóm (05/11/2026)
-
-Trên trang **Khách hàng & đơn hàng → Ma trận tương quan các chỉ tiêu kinh doanh**, chọn một trong năm nhóm: Toàn bộ dữ liệu, Quốc gia sinh lời (tổng lợi nhuận > 0), Quốc gia không sinh lời (tổng lợi nhuận ≤ 0), Chiết khấu dưới 10% (discount < 0,10) hoặc Chiết khấu trên 10% (discount > 0,10). Giao dịch đúng 10% **không nằm trong hai nhóm chiết khấu**.
-
-Mỗi nhóm có ma trận Pearson 7 biến với nhãn số trong từng ô, số quốc gia và số dòng quan sát được tính thực tế từ PostgreSQL, nhận xét các cặp biến và bảng so sánh hệ số r với nhóm đối chiếu. Nhóm quốc gia sinh lời/không sinh lời được xác định theo **tổng lợi nhuận sau bộ lọc chung**; không giả định dữ liệu của nhóm có đúng 30 hoặc 117 quốc gia. Không sử dụng hệ số trong hình minh họa làm dữ liệu thật.
-
-Đây là so sánh *tương quan* trên từng dòng bán hàng, không có cơ sở kết luận *nguyên nhân* lợi nhuận hoặc doanh thu thay đổi. Tương quan của các tỷ số tạo từ biến gốc (biên lợi nhuận, lợi nhuận/đơn vị) cần diễn giải đặc biệt thận trọng. Kiểm thử mới đã được bổ sung vào `check_dashboard.py`, nhưng phải chạy trên PostgreSQL thực để xác nhận kết quả.
-
-## Sửa kỳ phân tích hành vi khách hàng 3/6/12 tháng (05/11/2026)
-
-Trang **Khách hàng & đơn hàng** có bộ chọn **Khoảng thời gian phân tích hành vi khách hàng**. Nó tác động trực tiếp tới các KPI: khách hoạt động, mới, quay lại, tỷ lệ quay lại, tỷ lệ mua lặp trong kỳ, khách không hoạt động, tỷ lệ không hoạt động; đồng thời tác động tới bảng và donut cơ cấu phân khúc. Các biểu đồ vận chuyển, chiết khấu, tương quan phía dưới tiếp tục theo bộ lọc chung ở thanh bên trái.
-
-Cửa sổ 3/6/12 tháng được tính lùi từ ngày kết thúc lựa chọn ở sidebar và giới hạn không sớm hơn ngày bắt đầu sidebar. Chẳng hạn nếu sidebar chọn đến 12/2014, 3 tháng là 10–12/2014, 6 tháng là 7–12/2014 và 12 tháng là 1–12/2014. `customer_orders` vẫn lấy lịch sử mua **trước cửa sổ**, trong phạm vi thị trường/ngành hàng đang lọc, để phân biệt khách mới và quay lại. Với toàn kỳ 2011–2014, không thể khẳng định khách đầu kỳ hoàn toàn mới đối với cửa hàng vì không có lịch sử trước 2011.
-
-- Khách mới: lần đầu có giao dịch được ghi nhận thuộc cửa sổ.
-- Khách quay lại: có lịch sử mua trước cửa sổ và mua tiếp trong cửa sổ.
-- Tỷ lệ quay lại: khách quay lại / khách hoạt động trong cửa sổ.
-- Tỷ lệ mua lặp: khách có ít nhất hai đơn hàng riêng trong cửa sổ / khách hoạt động trong cửa sổ.
-- Chỉ số không hoạt động: khách đã từng mua trước cửa sổ nhưng không mua trong cửa sổ / tổng khách từng mua trước cửa sổ. Đây không phải quan sát churn thực sự.
-
-Kiểm thử `test_customer_rolling_windows_change_kpis` xác nhận KPI thay đổi theo kỳ trên dữ liệu mẫu có kiểm soát và kiểm tra bộ chọn UI, nhưng vẫn cần chạy trên PostgreSQL thực để đánh giá bản triển khai.
-
-## Quốc gia sinh lời / không sinh lời gắn với ma trận tương quan (05/11/2026)
-
-Trang **Khách hàng & đơn hàng → Ma trận tương quan các chỉ tiêu kinh doanh** nay có phần **Quốc gia nào đang sinh lời, quốc gia nào cần rà soát?** ngay trước ma trận. Các thành phần:
-- KPI số quốc gia sinh lời, số quốc gia lỗ và hòa vốn.
-- Xếp hạng tối đa 10 quốc gia lỗ nhiều nhất và 10 quốc gia lời cao nhất theo **tổng lợi nhuận thực tế**.
-- Bảng tên **tất cả quốc gia** của nhóm đang chọn, kèm doanh thu, lợi nhuận, biên lợi nhuận, phí vận chuyển, chiết khấu trung bình, tỷ lệ dòng lỗ và trạng thái. Có thể tải CSV.
-- Chọn tên quốc gia để xem thêm tổng hợp lợi nhuận theo ngành hàng và gợi ý nội dung cần rà soát.
-- Bảng quốc gia chịu cùng phân nhóm như ma trận tương quan (tổng dữ liệu, sinh lời, không sinh lời, discount dưới 10% và trên 10%). Với phân nhóm chiết khấu, trạng thái **chỉ thuộc nhóm giao dịch được lọc**, không suy ra lời/lỗ toàn bộ hoạt động của nước đó.
-- Ma trận Pearson vẫn đo quan hệ giữa biến trên nhiều **dòng giao dịch**, không phải ma trận thể hiện danh sách quốc gia. Phân tích tương quan không đủ để kết luận tác động nhân quả.
-
-Đã bổ sung bài kiểm thử đối chiếu bảng quốc gia với tổng dòng bán hàng, doanh thu và lợi nhuận từ PostgreSQL. Chạy lại `py -u src/dashboard/check_dashboard.py` trên môi trường kết nối thật để xác nhận.
-
-## Gemini chatbot hỏi đáp Global Superstore (05/11/2026)
-
-Trang **Hỏi đáp dữ liệu** có hai chế độ:
-- Nếu `GEMINI_API_KEY` đã được lưu trong **Streamlit Secrets**, ứng dụng dùng Gemini để hiểu câu hỏi tiếng Việt tự nhiên, chọn hành động truy vấn được phép và duy trì ngữ cảnh một số lượt hội thoại.
-- Nếu không có key hoặc dịch vụ AI lỗi, chatbot quy tắc `chatbot.py` cũ vẫn hoạt động (nếu API lỗi sẽ thông báo chuyển chế độ).
-
-**Phạm vi và bảo mật:** Gemini nhận câu hỏi và tối đa bốn lượt hỏi đáp gần nhất, KHÔNG nhận mật khẩu Neon hoặc toàn bộ dữ liệu. AI chỉ lập kế hoạch từ danh sách thao tác cho phép. Python xác minh kế hoạch và chỉ sử dụng truy vấn OLAP có sẵn hay hàm `insights.py` để tính giá trị. Không chạy SQL do mô hình tạo. Câu hỏi vượt dữ liệu 2011–2014, ngoài kinh doanh Global Superstore, hoặc không thuộc công cụ sẵn có sẽ được từ chối. Các câu trả lời định lượng được tạo từ kết quả PostgreSQL (không để mô hình tự sáng tác). Đổi bộ lọc sidebar sẽ xóa lịch sử hội thoại hiển thị.
-
-**Cấu hình cho Streamlit Community Cloud:**
-1. Truy cập tài khoản API hợp lệ của bạn tại Google AI Studio; chỉ tạo API key nếu tài khoản đủ điều kiện, không bỏ qua kiểm tra tuổi/quyền truy cập.
-2. Streamlit Cloud → App → Settings → Secrets: **giữ nguyên** `SUPERSTORE_DATABASE_URL`, bổ sung các dòng:
-```toml
-GEMINI_API_KEY = "DAN_API_KEY_RIENG_CUA_BAN"
-GEMINI_MODEL = "gemini-2.5-flash"
-```
-3. Save, sau đó reboot hoặc redeploy nếu cần. `GEMINI_MODEL` có thể được đổi thành mã model Gemini có quyền truy cập thực tế. Không gửi key cho người khác hoặc đưa vào GitHub.
-4. App tự cài `google-genai` từ `src/dashboard/requirements.txt`. Nếu trên máy cá nhân, dùng `py -m pip install -r src/dashboard/requirements.txt` rồi cấu hình biến môi trường bí mật.
-5. Chạy thử các câu: "Doanh thu cao nhất ở đâu?", "Còn năm 2013?", "So sánh Turkey với Nigeria", "Lợi nhuận ở Turkey thế nào?", "Thời tiết ở đâu?" (phải từ chối).
-6. Có thể phát sinh giới hạn hoặc phí API tùy tài khoản và model. Không cần mở cổng PostgreSQL trên Windows. Nếu không đủ điều kiện dùng API, cứ giữ chatbot dự phòng; dashboard vẫn chạy.
-
-Các mã mới: `src/dashboard/ai_chatbot.py` (Gemini chỉ hiểu/định tuyến), `src/dashboard/app.py` (UI fallback), `src/dashboard/check_dashboard.py` (tests không gọi API thực). **Chưa xác nhận chạy API Gemini và PostgreSQL Neon đồng thời**; cần kiểm thử thực trên app sau khi cấu hình Secrets.
-
-## Chạy trên máy người nhận
-
-Yêu cầu Windows x64, Python 3.12 và quyền tải các thư viện/PostgreSQL. Mở PowerShell tại thư mục chứa README này (không chạy từ `src/forecasting`).
-
-```powershell
-python -m venv .runtime/forecast-venv
-& .runtime/forecast-venv/Scripts/python.exe -m pip install -r src/forecasting/requirements.txt -r src/dashboard/requirements.txt
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/warehouse/setup_local_postgres.py
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/warehouse/warehouse.py all
-& .runtime/forecast-venv/Scripts/python.exe -m streamlit run src/dashboard/app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true
+```bash
+python -m unittest discover -s src/etl -p test_preprocess.py -v
+python -m unittest discover -s src/dashboard -p test_daily_customers.py -v
+python tools/evaluate_monte_carlo.py
 ```
 
-Mở `http://127.0.0.1:8501`. PostgreSQL riêng ở `127.0.0.1:55432`, database `superstore_dw`. Script setup tạo runtime và thông tin kết nối trên máy người nhận; không mang runtime từ máy cũ. Nếu dùng database có sẵn, cấu hình `PSQL_PATH`, `PGPASSFILE`, `SUPERSTORE_DATABASE_URL` tương ứng.
-
-Dữ liệu processed đã có sẵn, không bắt buộc tạo lại. Khi cần tái tạo hoặc huấn luyện lại:
-
-```powershell
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/etl/preprocess.py --check-baseline
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/warehouse/warehouse.py all
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/forecasting/forecast.py
-```
-
-Các lệnh kiểm tra sau khi nạp kho:
-
-```powershell
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 -m unittest discover -s src/etl -p test_preprocess.py -v
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/warehouse/check_pipeline.py
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 -m unittest discover -s src/forecasting -p test_forecast.py -v
-& .runtime/forecast-venv/Scripts/python.exe -X utf8 src/dashboard/check_dashboard.py
-```
-
-Kiểm tra trình duyệt là tùy chọn khi phát triển: cài `src/dashboard/requirements-dev.txt`, chạy Streamlit, rồi chạy `src/dashboard/check_browser.py` với Microsoft Edge đã cài.
-
-## Việc người nhận cần hoàn thiện trước khi nộp
-
-1. Hoàn thiện báo cáo: lời mở đầu còn dang dở; ghi phân vai/sản phẩm của từng thành viên; bổ sung tổng kết/hướng phát triển và ảnh demo phù hợp.
-2. **Bổ sung slide thuyết trình dạng PDF** — chưa có trong bộ bàn giao hiện tại, bắt buộc theo §5.1.
-3. Nếu nhóm không thuyết trình trực tiếp: chuẩn bị video 10–15 phút có tất cả thành viên, bật quyền xem và ghi link trên bìa báo cáo. Nếu thuyết trình trực tiếp, tất cả thành viên vẫn phải trình bày.
-4. Đóng ZIP cuối gồm báo cáo, `src/`, `data/`, slide PDF và link video nếu áp dụng. Giữ các file kết quả cần thiết để chạy dashboard.
-
-Bộ bàn giao hiện tại chưa phải bộ nộp cuối vì chưa có slide PDF và phần thuyết trình chưa được xác nhận. Hạn theo Assignment: 23:59 ngày 15/11/2026, nộp LMS.
+- Bản bàn giao này đã chạy lại 8 kiểm thử ETL, 9 kiểm thử Monte Carlo và tái lập kết quả backtest từ CSV. Không suy rộng thành nghiệm thu PostgreSQL, Streamlit Cloud hoặc Gemini trên môi trường hiện tại.
+- Báo cáo gốc chưa biên tập lại toàn bộ LaTeX. Khi nội dung về kiểm định Monte Carlo khác với phụ lục, dùng kết quả CV04 ở cuối PDF và trong `results/monte_carlo/`. WAPE gộp là 32,61% so với 21,53% của đối chứng, với 0/24 tháng thực tế trong dải P10–P90.
+- Bằng chứng CV04 giữ nguyên theo manifest. Tài liệu CV04 có chỗ ghi tên log cũ `monte-carlo-tests-final.log`. Tên đúng trong nhánh này là [monte-carlo-tests-cv04.log](evidence/monte-carlo-tests-cv04.log).
+- Theo đề bài, nếu nhóm thuyết trình qua video, cần thêm liên kết có quyền xem vào **bìa báo cáo** trước khi nộp LMS. Nhánh này chưa kèm liên kết video vì chưa có URL được xác nhận.

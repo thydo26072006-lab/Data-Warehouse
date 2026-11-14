@@ -1,0 +1,14 @@
+test_continuous_history_can_start_after_original_first_day) ... ok
+test_monthly_summary_counts_repeat_customers_on_different_days (test_daily_customers.DailyCustomerSimulationTests.test_monthly_summary_counts_repeat_customers_on_different_days) ... ok
+test_one_calendar_month_and_twelve_months (test_daily_customers.DailyCustomerSimulationTests.test_one_calendar_month_and_twelve_months) ... ok
+test_only_past_dates_and_weekday_sampling (test_daily_customers.DailyCustomerSimulationTests.test_only_past_dates_and_weekday_sampling) ... ok
+test_reject_short_or_invalid_period (test_daily_customers.DailyCustomerSimulationTests.test_reject_short_or_invalid_period) ... ok
+test_reproducible_seed_and_risk (test_daily_customers.DailyCustomerSimulationTests.test_reproducible_seed_and_risk) ... ok
+test_seasonal_month_weekday_matching (test_daily_customers.DailyCustomerSimulationTests.test_seasonal_month_weekday_matching) ... ok
+test_sparse_season_uses_only_historical_weekday_pool (test_daily_customers.DailyCustomerSimulationTests.test_sparse_season_uses_only_historical_weekday_pool) ... ok
+test_unique_customers_per_day_and_zero_days (test_daily_customers.DailyCustomerSimulationTests.test_unique_customers_per_day_and_zero_days) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 2.109s
+
+OK
