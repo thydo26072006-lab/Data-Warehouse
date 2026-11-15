@@ -47,3 +47,5 @@ Tổng dự kiến 6389.2775 lượt, trung bình 532.4398 lượt/tháng; thán
 ```
 
 Nội dung này là phần bổ sung báo cáo CV04. Khi hoàn thiện báo cáo PDF cuối ở CV05/CV11, cần đưa tham số, bảng kết quả và giới hạn trên vào phần Monte Carlo; việc sửa PDF gốc chưa thực hiện ở CV04.
+
+> **Cập nhật trạng thái PDF trên DNNB (15/11/2026):** Nội dung kiểm định Monte Carlo đã được tích hợp vào [KDL_Main.pdf](../../KDL_Main.pdf), tại **mục 4.6.3, Bảng 20**, cùng phần đánh giá ở mục 6.5 và phần thảo luận, hạn chế trong Chương 7. Câu phía trên ghi việc sửa PDF chưa thực hiện là trạng thái lịch sử tại thời điểm hoàn tất CV04; ghi chú này cập nhật trạng thái bàn giao hiện tại. Nội dung cũ được giữ nguyên theo yêu cầu chỉ bổ sung.
