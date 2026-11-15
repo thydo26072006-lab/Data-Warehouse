@@ -33,6 +33,28 @@ python src/forecasting/forecast.py
 python -m streamlit run src/dashboard/app.py
 ```
 
+## Trạng thái kiểm thử cục bộ — 15/11/2026
+
+Đã kiểm thử trên Windows, Python 3.12.6 và PostgreSQL 17.11 cục bộ:
+
+| Bộ kiểm thử | Kết quả | Bằng chứng |
+| --- | --- | --- |
+| Dashboard | 21/21 đạt | [Log hồi quy](evidence/chatbot-windows/check_dashboard.log) |
+| Tích hợp kho | 7/7 đạt | [Log](evidence/warehouse-integration.log), [kết quả JSON](evidence/warehouse-integration.json) |
+| Cửa sổ chatbot 3/6/12 tháng | 8/8 đạt | [Log](evidence/chatbot-windows/test_chatbot_windows-final.log) |
+
+Đối soát kho xác nhận 51.290 dòng, đủ 26 thuộc tính và 6 khóa ngoại;
+chênh lệch bốn tổng chỉ tiêu bằng 0.
+Xem [kết quả đối soát](evidence/warehouse-verification.json).
+
+Các kết quả thuộc những lượt kiểm thử được ghi riêng trong
+[manifest nghiệm thu](evidence/manifest.json) và
+[manifest bổ sung chatbot](evidence/chatbot-windows/manifest.json).
+Các ghi chú kiểm thử cũ bên dưới được giữ làm lịch sử;
+mục này cập nhật trạng thái nghiệm thu cục bộ.
+
+Chưa xác nhận nghiệm thu Neon, Streamlit Cloud hoặc Gemini với API thật.
+
 ## Kiểm tra có thể chạy độc lập
 
 ```bash
