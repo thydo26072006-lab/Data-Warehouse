@@ -1,0 +1,14 @@
+2026-11-15 21:21:03.168 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+test_empty_cohort_is_safe (__main__.CustomerWindowChecks.test_empty_cohort_is_safe) ... ok
+test_explicit_year_is_applied_before_window (__main__.CustomerWindowChecks.test_explicit_year_is_applied_before_window) ... ok
+test_guard_and_segment_routing_preserved (__main__.CustomerWindowChecks.test_guard_and_segment_routing_preserved) ... ok
+test_sidebar_clips_window (__main__.CustomerWindowChecks.test_sidebar_clips_window) ... ok
+test_six_months_changes_cohort (__main__.CustomerWindowChecks.test_six_months_changes_cohort) ... ok
+test_three_months_retains_earlier_history (__main__.CustomerWindowChecks.test_three_months_retains_earlier_history) ... ok
+test_twelve_months_and_default_match (__main__.CustomerWindowChecks.test_twelve_months_and_default_match) ... ok
+test_unsupported_or_ambiguous_period_does_not_query (__main__.CustomerWindowChecks.test_unsupported_or_ambiguous_period_does_not_query) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.076s
+
+OK
