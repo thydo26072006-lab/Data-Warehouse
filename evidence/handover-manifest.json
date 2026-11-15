@@ -1,0 +1,535 @@
+{
+  "schema_version": 1,
+  "kind": "handover_file_inventory",
+  "created_at": "2026-11-15T23:10:16.784334+07:00",
+  "repository": "https://github.com/thydo26072006-lab/Data-Warehouse",
+  "branch": "DNNB",
+  "base_commit": "191f5bf514f74c068bc3fa4f936bde7c3d8e8fb8",
+  "base_commit_meaning": "Commit before adding this handover inventory and its new documentation/verifier. Not a claim of a new acceptance test on that commit.",
+  "hash_algorithm": "SHA-256",
+  "hash_policy": "Exact file bytes, checked against staged Git blobs; no newline normalization.",
+  "scope": "All Git-tracked handover files, including new handover documentation and verifier. The manifest excludes itself.",
+  "excluded_paths": [
+    "evidence/handover-manifest.json"
+  ],
+  "files_count": 88,
+  "total_bytes": 42653002,
+  "tests_rerun_for_this_manifest": false,
+  "existing_evidence": [
+    {
+      "suite": "Dashboard regression",
+      "passed": 21,
+      "total": 21,
+      "log": "evidence/chatbot-windows/check_dashboard.log",
+      "provenance_manifest": "evidence/chatbot-windows/manifest.json"
+    },
+    {
+      "suite": "Warehouse integration",
+      "passed": 7,
+      "total": 7,
+      "log": "evidence/warehouse-integration.log",
+      "result": "evidence/warehouse-integration.json",
+      "provenance_manifest": "evidence/manifest.json"
+    },
+    {
+      "suite": "Customer chatbot windows",
+      "passed": 8,
+      "total": 8,
+      "log": "evidence/chatbot-windows/test_chatbot_windows-final.log",
+      "provenance_manifest": "evidence/chatbot-windows/manifest.json"
+    }
+  ],
+  "historical_manifest_comparison": [
+    {
+      "manifest": "evidence/manifest.json",
+      "matching_hashes": 68,
+      "differences": [
+        {
+          "path": "src/dashboard/chatbot.py",
+          "historical_sha256": "b8a54745daf11107fd2b165256908f1648f804a418e4ae0d46e58255423253fe",
+          "handover_sha256": "7136a19df8cd0100bc629067585426cbc2d9fe67e430b0df0e4af72e5cc4887d"
+        },
+        {
+          "path": "tools/evaluate_monte_carlo.py",
+          "historical_sha256": "2f69d89585c7f47eccdc83d37b7c6c72699f69344d1b6c35167ff7031ed257c4",
+          "handover_sha256": "f5cc14118a17b0a5f7f38c915071e882d0fffb4b7079e01746c3b7509fbdfebb"
+        },
+        {
+          "path": "results/report/CV04_MonteCarlo_KiemDinh.md",
+          "historical_sha256": "13fd67919eceb8b21d5bc0350d0381e3d7ad4abe8621df6c7bf931a5b9c0dba5",
+          "handover_sha256": "54b4705854888ee8667323b31c68627980a0f36b5e167e402502c9f138843f50"
+        }
+      ]
+    },
+    {
+      "manifest": "evidence/chatbot-windows/manifest.json",
+      "matching_hashes": 33,
+      "differences": []
+    },
+    {
+      "manifest": "evidence/cv04-manifest.json",
+      "matching_hashes": 7,
+      "differences": [
+        {
+          "path": "tools/evaluate_monte_carlo.py",
+          "historical_sha256": "2f69d89585c7f47eccdc83d37b7c6c72699f69344d1b6c35167ff7031ed257c4",
+          "handover_sha256": "f5cc14118a17b0a5f7f38c915071e882d0fffb4b7079e01746c3b7509fbdfebb"
+        },
+        {
+          "path": "results/report/CV04_MonteCarlo_KiemDinh.md",
+          "historical_sha256": "13fd67919eceb8b21d5bc0350d0381e3d7ad4abe8621df6c7bf931a5b9c0dba5",
+          "handover_sha256": "54b4705854888ee8667323b31c68627980a0f36b5e167e402502c9f138843f50"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Historical manifests retain their original contents and describe earlier snapshots.",
+    "File integrity verification does not rerun tests or certify live Neon, Streamlit Cloud or Gemini API.",
+    "Later documentation additions to the Monte Carlo report generator are included in current hashes, without claiming a new Monte Carlo evaluation run.",
+    "PowerPoint and slide PDF are inventoried independently; content synchronization is not certified."
+  ],
+  "verification_command": "python tools/verify_handover_manifest.py",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 86,
+      "sha256": "eeea8666faca2c1662085b504f8f360f6fb8cb58947d63ef0a76463117dc6091"
+    },
+    {
+      "path": ".streamlit/config.toml",
+      "bytes": 563,
+      "sha256": "6645d19a012ee384b94b56e296e8b0a8f2f426f025a767ce7077ea6d156e51ac"
+    },
+    {
+      "path": "KDL_Main.pdf",
+      "bytes": 4256384,
+      "sha256": "c97da3064b70d3b3f6a39d38d1ef00ea1c422c4d7a364592f89ba7bc3dd30b86"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5221,
+      "sha256": "4bc20ba2e92dd07783b2d5ac9d24d3f799253222bdf340d81f64d25822850fb4"
+    },
+    {
+      "path": "Slide_CO4031.pdf",
+      "bytes": 2894081,
+      "sha256": "c3643b2be7fcbe8a188d8fcce5cb36a7fab564516bd1c931e496a4791c5f175c"
+    },
+    {
+      "path": "Slide_datawarehouse_1.pptx",
+      "bytes": 5360941,
+      "sha256": "8bb89a1a71b15d46a8bf0f94983c2fdfa6d6d39a30dc9156bacc25a3abbab359"
+    },
+    {
+      "path": "data/processed/superstore_processed.csv",
+      "bytes": 13445908,
+      "sha256": "78ff65d56735035cef58a114bfd0ef48353dfc1657111f190e38666c8429930a"
+    },
+    {
+      "path": "data/superstore.csv",
+      "bytes": 15844267,
+      "sha256": "7203f16d9e44430c7cd4c92e401df3381141b0b9b8bdec44b6d8e8ecb298b8db"
+    },
+    {
+      "path": "docs/BTL_KHODL_HUONG_DAN.md",
+      "bytes": 20896,
+      "sha256": "86b49cc6c9fe27e9ca7ccf6bb819b49791d1400fe5a98f57f80cccaa9f6cae34"
+    },
+    {
+      "path": "docs/chatbot_customer_windows.md",
+      "bytes": 2750,
+      "sha256": "5b4fc8eddc6cc7a6fca230face7f89d60f7c482c90d6ca3ded99443805441a01"
+    },
+    {
+      "path": "evidence/HANDOVER.md",
+      "bytes": 2896,
+      "sha256": "1c3735e41a97702a26777bcfc9ccc3fe40bc2566fd8e2c4caad04f3349998fa2"
+    },
+    {
+      "path": "evidence/README.md",
+      "bytes": 4099,
+      "sha256": "341fc4a9659a0344a1886c16a8132c3449ea9ec53a4a231615c147fbde2ace82"
+    },
+    {
+      "path": "evidence/chatbot-windows/README.md",
+      "bytes": 998,
+      "sha256": "a564be6d19a50ea81812bbbf0d6668281b9571131453587f7203866e196aed31"
+    },
+    {
+      "path": "evidence/chatbot-windows/check_dashboard.log",
+      "bytes": 30326,
+      "sha256": "e75b0e58b661fbf9ee1501762e3a57503d3f526f178ac89a3d9132a7fa6e6b4e"
+    },
+    {
+      "path": "evidence/chatbot-windows/manifest.json",
+      "bytes": 6582,
+      "sha256": "d610541a51aabb5e74d05fb62ded77b0df6ef30e6b572e945b7430cb9ff453bb"
+    },
+    {
+      "path": "evidence/chatbot-windows/test_chatbot_windows-final.log",
+      "bytes": 1146,
+      "sha256": "9ca1c9ad73ab11dff34455682b74d4c90bbf77a7f8f5cc17f46b2dec5fea93ab"
+    },
+    {
+      "path": "evidence/chatbot-windows/test_chatbot_windows.log",
+      "bytes": 2200,
+      "sha256": "c44f57c23f8d785075abc0b67138c788595609ac45f52854d0884f1d1087da18"
+    },
+    {
+      "path": "evidence/customer_windows.csv",
+      "bytes": 448,
+      "sha256": "3c85dcb25342fab320982531a3b17994a1c69e4925a6835b2038118024fd0828"
+    },
+    {
+      "path": "evidence/cv04-manifest.json",
+      "bytes": 4199,
+      "sha256": "1410df0f9506cd33c77b8575c095fc6a9dc28b3b9f8bb7de5f26aa51b326e060"
+    },
+    {
+      "path": "evidence/dashboard-checks.json",
+      "bytes": 441,
+      "sha256": "372477307a4c632819ce55081aa2b7fd6f582209699a49947258ce21a757fdae"
+    },
+    {
+      "path": "evidence/dashboard-tests.log",
+      "bytes": 30326,
+      "sha256": "095ffdc60d3a58dd5a29bc456247cab0f9e004be68dd837822ee21d1ba33339c"
+    },
+    {
+      "path": "evidence/environment.json",
+      "bytes": 1538,
+      "sha256": "db26b3340b5d6b277df3f0158075fe8e95103aade6339ac1206a85c88f9b0fd9"
+    },
+    {
+      "path": "evidence/manifest.json",
+      "bytes": 15033,
+      "sha256": "26f50175b20606d1d8d30e51a76eacb0f276a85ace6c4a31464328f45df2fd81"
+    },
+    {
+      "path": "evidence/monte-carlo-evaluation.log",
+      "bytes": 2308,
+      "sha256": "d4c8233a2146af3165c9983b0cbb55a668d5fc72deb75945590dbd3bc5aef467"
+    },
+    {
+      "path": "evidence/monte-carlo-tests-cv04.log",
+      "bytes": 1349,
+      "sha256": "800f9cdcea0b19c9452c276c0df7d5ef4c79b0614ba9ac69d4ba7b39c50ced64"
+    },
+    {
+      "path": "evidence/pearson_all.csv",
+      "bytes": 1122,
+      "sha256": "c2fa8591726c8b699621b421183ede23951847ff1b2ce1e84d81d579c5f5b9f8"
+    },
+    {
+      "path": "evidence/pearson_discount_above_10.csv",
+      "bytes": 1132,
+      "sha256": "ae0ee2bf1f80b2b73504f96cf48573d9305729d8788515b0218a835bc4ac8d61"
+    },
+    {
+      "path": "evidence/pearson_discount_below_10.csv",
+      "bytes": 1132,
+      "sha256": "987184053463b38fae8875dc263d6a6d2f9f36355c2c1fe2eb270fa299e57a2f"
+    },
+    {
+      "path": "evidence/pearson_non_profitable.csv",
+      "bytes": 1128,
+      "sha256": "8cd72adaa300b34a76470ff747bafebb6fd1a664c58a825e186969d1c89f5dcc"
+    },
+    {
+      "path": "evidence/pearson_profitable.csv",
+      "bytes": 1138,
+      "sha256": "40575f4b949131a2aeee3e70bc75ebbd3ddac81f6444738c7b038f887785033d"
+    },
+    {
+      "path": "evidence/warehouse-integration.json",
+      "bytes": 394,
+      "sha256": "031462b6ffa912a1459bfc72182f8f6afa761ba64fb9f53ef087af630ab4e863"
+    },
+    {
+      "path": "evidence/warehouse-integration.log",
+      "bytes": 1464,
+      "sha256": "857f6e5d6eed7ba75c81ff54a28c72676531888f3d8ccc1e4fef765d707f8a8c"
+    },
+    {
+      "path": "evidence/warehouse-verification.json",
+      "bytes": 6873,
+      "sha256": "ccd774491b98af4c6e4e87bba484d2b0033f4f776ca5bff86e3e6c8825dafc37"
+    },
+    {
+      "path": "evidence/warehouse-verify.log",
+      "bytes": 215,
+      "sha256": "eb483b867e798f32c81c0b5a131c42298e62a2d9ae606a9a729a1bd8f4528c2b"
+    },
+    {
+      "path": "results/dashboard/checks.json",
+      "bytes": 441,
+      "sha256": "372477307a4c632819ce55081aa2b7fd6f582209699a49947258ce21a757fdae"
+    },
+    {
+      "path": "results/forecasting/evaluation.json",
+      "bytes": 1380,
+      "sha256": "899b75abfe6294b93484cbff041b59cd5fbfec1b74767fd02b7fe9374d355bd9"
+    },
+    {
+      "path": "results/forecasting/forecast_next_month.csv",
+      "bytes": 438,
+      "sha256": "d59f4d71f5b4f6f91b025828ac89daa37954e9febf6356d808394e24ec307ede"
+    },
+    {
+      "path": "results/forecasting/monthly_sales.csv",
+      "bytes": 4726,
+      "sha256": "90677c3c24b21f0a3a226977ec2d1aa64e90ff3f835a57b1d2f999c9dcbb8810"
+    },
+    {
+      "path": "results/forecasting/test_metrics.csv",
+      "bytes": 972,
+      "sha256": "9bba626deb81ea07a70d0f02d0b00c2b0f96779df3e7f7cdfb8b30af3b93fc58"
+    },
+    {
+      "path": "results/forecasting/test_predictions.csv",
+      "bytes": 6055,
+      "sha256": "f8c64ec302590acffbab4d155c124ade0ba864e587fda1dfb1ac9ce561e5f1e8"
+    },
+    {
+      "path": "results/monte_carlo/backtest_monthly.csv",
+      "bytes": 1600,
+      "sha256": "a1d14dae2b043c2ac702fdb5db4b59ba70cbb3a5a89bf7c6ebfe9304f0210c39"
+    },
+    {
+      "path": "results/monte_carlo/evaluation.json",
+      "bytes": 2306,
+      "sha256": "58f8ab4d11ab80adbb9a4ca43fe3bb72b055a4e85f8c6d0934ad4669fa3fa00d"
+    },
+    {
+      "path": "results/monte_carlo/forecast_2015_monthly.csv",
+      "bytes": 416,
+      "sha256": "ae918a4ec67a636f499d326b210d22f7b6e40758be4b039125d40b3f6c55562a"
+    },
+    {
+      "path": "results/report/CV04_MonteCarlo_KiemDinh.md",
+      "bytes": 4592,
+      "sha256": "54b4705854888ee8667323b31c68627980a0f36b5e167e402502c9f138843f50"
+    },
+    {
+      "path": "results/report/dashboard_analytics_addendum.md",
+      "bytes": 5978,
+      "sha256": "b7ff77c9b9f7fe552dbd7feac28f49820f4728129c877ac5fcc5e51eb01cee8d"
+    },
+    {
+      "path": "results/report/section_4_3_3.md",
+      "bytes": 2825,
+      "sha256": "d43860bd4261ab49052f77b0cbc1aae5b6d252310bac179683076ecf82e86c83"
+    },
+    {
+      "path": "results/warehouse/olap/01_overview.csv",
+      "bytes": 166,
+      "sha256": "4d7c6c6ac9052738c496f10f2108642b2acbfbef9bbe7cc94a9d6ebd54401cd6"
+    },
+    {
+      "path": "results/warehouse/olap/02_monthly_growth.csv",
+      "bytes": 4438,
+      "sha256": "cef326afce4d70dc56a2f6adbec1b376ce54a67daae6f3a1366acebe6b94f890"
+    },
+    {
+      "path": "results/warehouse/olap/03_time_rollup.csv",
+      "bytes": 3239,
+      "sha256": "79f1188e61f49e985c05fe38635bd9d8deae4bfa92498e18da33c48ab81b6019"
+    },
+    {
+      "path": "results/warehouse/olap/04_product_drilldown.csv",
+      "bytes": 1374,
+      "sha256": "ed2eba6dfa267ab434eb46c07e2735d438f246da57e433009d8bf0dcbb171d5c"
+    },
+    {
+      "path": "results/warehouse/olap/05_geography.csv",
+      "bytes": 10143,
+      "sha256": "9ff0f785de984b251b20ccf6643ab50e8b137c37e6b64f762dfb5fe7531438d4"
+    },
+    {
+      "path": "results/warehouse/olap/06_customer_segments.csv",
+      "bytes": 236,
+      "sha256": "66b644d4c159909f213337e2e30714229407e6b70af1426a3d2c56cc9849f9a8"
+    },
+    {
+      "path": "results/warehouse/olap/07_top_customers.csv",
+      "bytes": 1231,
+      "sha256": "57b43b8e0c28cabeb88eeef12c9a8b86775400f30a7c18e331f1d0afe35840f4"
+    },
+    {
+      "path": "results/warehouse/olap/08_order_shipping.csv",
+      "bytes": 878,
+      "sha256": "c53be1664fd71993ef51bd01513b835afe603ccf7989a519709d21fe05d44eaf"
+    },
+    {
+      "path": "results/warehouse/olap/09_market_category_cube.csv",
+      "bytes": 1752,
+      "sha256": "b87bc612ce5e9c8fa38b36f47aeeb5af20e52dd9a80fd58bc22a59b4fd971aa4"
+    },
+    {
+      "path": "results/warehouse/olap/10_slice_dice.csv",
+      "bytes": 1895,
+      "sha256": "26e849e02f790cf0fb76d38af5660b566a67b188b6cb0d4d1823da1395a2f1b0"
+    },
+    {
+      "path": "results/warehouse/olap/11_loss_making_products.csv",
+      "bytes": 322163,
+      "sha256": "61bd22e2730455121f7d671d466a5ce608df4422a3cee731f3e54aff0aad7f77"
+    },
+    {
+      "path": "results/warehouse/olap/12_discount_analysis.csv",
+      "bytes": 293,
+      "sha256": "d41a2d426b314c49c1fc7dab21df4bade664ef9991589c9c5716bdfcdeb9fd9e"
+    },
+    {
+      "path": "src/dashboard/README.md",
+      "bytes": 4340,
+      "sha256": "075a83fd73affaa74963c0ac37f26b9e0ec00c864e0b2fa9f895b4fb52593907"
+    },
+    {
+      "path": "src/dashboard/ai_chatbot.py",
+      "bytes": 14606,
+      "sha256": "fc97a654dc620351d86d835614f8b9f4ade879d4ef0c71b2b375a2b66cbb229f"
+    },
+    {
+      "path": "src/dashboard/app.py",
+      "bytes": 65140,
+      "sha256": "3b2325666889f4bd535c3d1c44a458ece6a6282a1997300a58f8b01a236e38a6"
+    },
+    {
+      "path": "src/dashboard/chatbot.py",
+      "bytes": 15741,
+      "sha256": "7136a19df8cd0100bc629067585426cbc2d9fe67e430b0df0e4af72e5cc4887d"
+    },
+    {
+      "path": "src/dashboard/check_browser.py",
+      "bytes": 2631,
+      "sha256": "e4e78c529536abe847f5a48790c2999ffd94002dcacb550bf79674a7c2904126"
+    },
+    {
+      "path": "src/dashboard/check_dashboard.py",
+      "bytes": 28354,
+      "sha256": "e51ff74e4421f3c4d632b4f219bd47575d47ab206c4116cd8b6d4e10a7d1c79d"
+    },
+    {
+      "path": "src/dashboard/daily_customers.py",
+      "bytes": 5923,
+      "sha256": "027ffcdc333e05fbd2269f175459130feb15fbd02e261a7b559efe9fb782fb06"
+    },
+    {
+      "path": "src/dashboard/data.py",
+      "bytes": 4364,
+      "sha256": "72270c669b7a9fe6085d45913f0a014f055785003db347a14b9ab275e7ac05f7"
+    },
+    {
+      "path": "src/dashboard/insights.py",
+      "bytes": 9141,
+      "sha256": "e1f2726c055fccf0c7b9f49a6e02666244759cabc75ad6167a4e8aed63904020"
+    },
+    {
+      "path": "src/dashboard/requirements-dev.txt",
+      "bytes": 39,
+      "sha256": "71f5f28175819315045c0c032009bc119f0fc2e7a48ba8efe61e673ba78d38cd"
+    },
+    {
+      "path": "src/dashboard/requirements.txt",
+      "bytes": 109,
+      "sha256": "e4d52f57c3c38853ae0bff978805ce4eae677c1bb45e157abd511472890d7468"
+    },
+    {
+      "path": "src/dashboard/run_dashboard.ps1",
+      "bytes": 652,
+      "sha256": "ff1a25fd963c3b120a7eff60e7fda27da5de219f61a126cc73b97b31c2c4e1fe"
+    },
+    {
+      "path": "src/dashboard/test_chatbot_windows.py",
+      "bytes": 4405,
+      "sha256": "04fc1c98813a23ac837c472cbf462b62e88f7d76b8537a8edc41d7b2f2baeb69"
+    },
+    {
+      "path": "src/dashboard/test_daily_customers.py",
+      "bytes": 6230,
+      "sha256": "4631508f5569ae678f33dc1029d9f37ef33bfe83a0ceff5cc6df0fc6d7302d59"
+    },
+    {
+      "path": "src/etl/preprocess.py",
+      "bytes": 11921,
+      "sha256": "ade67c40fcc6ab2bd53ddc93b5c099d31402125fb47dd145f39b90bc3cf32933"
+    },
+    {
+      "path": "src/etl/test_preprocess.py",
+      "bytes": 4175,
+      "sha256": "af0ea20e51f514cabfbb129cc764eb9865476fb3589c9d6fe16eed2d9b0565dd"
+    },
+    {
+      "path": "src/forecasting/forecast.py",
+      "bytes": 12321,
+      "sha256": "737a88c231aff6459ace9ec77635ec4c68ed0103ad7872caa9b3f5c80e9a55ef"
+    },
+    {
+      "path": "src/forecasting/monthly_sales.sql",
+      "bytes": 282,
+      "sha256": "f1d4a69a435a18f6161856ac981da4c78f2ced56c4c9c838b5f46500320952e9"
+    },
+    {
+      "path": "src/forecasting/requirements.txt",
+      "bytes": 80,
+      "sha256": "01b235f55eb1fd58d1b45a8dba1ae1cb7b92e00adc1edd9f9b2c7c3c71cc190b"
+    },
+    {
+      "path": "src/forecasting/test_forecast.py",
+      "bytes": 1652,
+      "sha256": "3065991872c06c9759a1ad7377b3652736eb4bae483cd043b9c11009e44d0a97"
+    },
+    {
+      "path": "src/process_data.ipynb",
+      "bytes": 87855,
+      "sha256": "802c981e763e42575e9de638c8dc6a25d3cf9b6cce9281cbd78636e653af8070"
+    },
+    {
+      "path": "src/warehouse/check_pipeline.py",
+      "bytes": 3494,
+      "sha256": "e8f17347c25af65508f8f456be5027cb0fbde23d793995000ef00e80f6bc75f3"
+    },
+    {
+      "path": "src/warehouse/setup_local_postgres.py",
+      "bytes": 5822,
+      "sha256": "4077d709d8211c649403c9a71cc0e715ab1c05e212552026f24f05f02c347c76"
+    },
+    {
+      "path": "src/warehouse/sql/01_create_tables.sql",
+      "bytes": 4025,
+      "sha256": "1227d922d96e76e21316220603794b648c2007ca10e586c9bc4e5113ae5db2ec"
+    },
+    {
+      "path": "src/warehouse/sql/02_load_data.sql",
+      "bytes": 3339,
+      "sha256": "6ef067be78683541fd670d9064193031e3bd8702549c946ec3566375861294c0"
+    },
+    {
+      "path": "src/warehouse/sql/03_analysis_view.sql",
+      "bytes": 835,
+      "sha256": "0f1742a1632fe34f06d20838bfa5cdfa7c1cb9fc5984518498acb226b23d9568"
+    },
+    {
+      "path": "src/warehouse/sql/04_olap_queries.sql",
+      "bytes": 4788,
+      "sha256": "560708a89c556ada32ab7308088bb87cd142b240d8937fd88146486d3c00022e"
+    },
+    {
+      "path": "src/warehouse/warehouse.py",
+      "bytes": 9836,
+      "sha256": "efdada98b95a39eef02a386372d27a71d3d91b259a8194fa4b0097f753f7a2f0"
+    },
+    {
+      "path": "tools/evaluate_monte_carlo.py",
+      "bytes": 9987,
+      "sha256": "f5cc14118a17b0a5f7f38c915071e882d0fffb4b7079e01746c3b7509fbdfebb"
+    },
+    {
+      "path": "tools/verify_handover_manifest.py",
+      "bytes": 1794,
+      "sha256": "bdf9febd590791fa144878fb5af317d2efb787b65bc8d7d3a559c9c006037992"
+    }
+  ]
+}

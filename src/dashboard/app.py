@@ -10,6 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from insights import customer_orders, customer_kpis, customer_window, segment_breakdown, sales_lines, state_sales, correlation_matrix, CORRELATION_SCOPES, country_performance, select_correlation_rows
+from daily_customers import daily_purchasing_customers, seasonal_customer_scenarios, daily_summary, monthly_summary
 from chatbot import EXAMPLES as CHAT_EXAMPLES, answer_question
 from ai_chatbot import configured as ai_configured, answer_ai
 
@@ -389,6 +390,75 @@ def products(filters):
         table(losses, "loss_making_products", "Xem và tải toàn bộ sản phẩm lỗ")
 
 
+
+def daily_customer_forecast(orders, start, end):
+    """Compare the next 12 months of purchasing-customer visit scenarios."""
+    st.subheader("Dự kiến lượng khách mua hàng trong 12 tháng")
+    st.caption("So sánh số lượt khách có giao dịch theo từng tháng, dựa trên lịch sử mua hàng.")
+    try:
+        daily = daily_purchasing_customers(orders, pd.Timestamp("2011-01-01"), end)
+        if daily.sum() == 0:
+            st.caption("Chưa có giao dịch trong giai đoạn này để ước lượng lượng khách.")
+            return
+        scenario = seasonal_customer_scenarios(daily, months=12)
+        forecast = monthly_summary(scenario)
+    except ValueError:
+        st.caption("Chưa đủ dữ liệu lịch sử để đưa ra kết quả tham khảo.")
+        return
+
+    total = float(forecast.expected.sum())
+    busiest = forecast.loc[forecast.expected.idxmax()]
+    left, middle, right = st.columns(3)
+    left.metric("Tổng lượt khách dự kiến trong 12 tháng", number(total, 0))
+    middle.metric("Trung bình mỗi tháng", number(total / 12, 0))
+    right.metric("Tháng dự kiến cao nhất", pd.Timestamp(busiest.month).strftime("%m/%Y"))
+    st.caption("Tổng lượt khách được cộng từ số khách mua theo từng ngày; "
+               "một khách mua ở nhiều ngày có thể được tính nhiều lần.")
+
+    x = forecast.month.dt.strftime("%m/%Y")
+    previous_months = daily.resample("MS").sum()
+    comparison_dates = forecast.month - pd.DateOffset(years=1)
+    comparison = ([int(previous_months.loc[date]) for date in comparison_dates]
+                  if all(date in previous_months.index for date in comparison_dates) else None)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x, y=forecast.high, mode="lines",
+        line=dict(color="#80ACD2", width=0),
+        hoverinfo="skip", showlegend=False))
+    fig.add_trace(go.Scatter(
+        x=x, y=forecast.low, mode="lines", fill="tonexty",
+        fillcolor="rgba(128,172,210,0.23)",
+        line=dict(color="#80ACD2", width=0), name="Khoảng biến động tham khảo"))
+    if comparison is not None:
+        fig.add_trace(go.Scatter(
+            x=x, y=comparison, mode="lines+markers",
+            line=dict(color="#9AA5B4", dash="dash", width=2),
+            marker=dict(size=5), name="Cùng tháng năm trước"))
+    fig.add_trace(go.Scatter(
+        x=x, y=forecast.expected, mode="lines+markers",
+        line=dict(color=NAVY, width=3),
+        marker=dict(size=7, color=NAVY), name="Mức dự kiến"))
+    fig.update_layout(
+        height=345, margin=dict(l=20, r=15, t=20, b=45),
+        xaxis_title="Tháng", yaxis_title="Tổng lượt khách mua theo ngày",
+        yaxis=dict(rangemode="tozero", gridcolor="#E7EDF2"),
+        paper_bgcolor=BACKGROUND, plot_bgcolor=BACKGROUND,
+        legend=dict(orientation="h", y=-0.3, x=0),
+        hovermode="x unified")
+    st.plotly_chart(fig, width="stretch", key="daily_customer_forecast_chart")
+    st.caption("Đường đậm: mức dự kiến. Dải xanh: khoảng biến động tham khảo. "
+               "Đường đứt: cùng tháng năm trước (nếu có dữ liệu). "
+               "Kiểm định 2013–2014: WAPE mô phỏng 32,61%, đối chứng 21,53%. Dải P10–P90 là dải kịch bản, không phải khoảng dự báo đã hiệu chỉnh.")
+    with st.expander("Xem số liệu 12 tháng"):
+        view = forecast[["month", "expected", "low", "high"]].copy()
+        view["month"] = view.month.dt.strftime("%m/%Y")
+        view = view.rename(columns={"month": "Tháng", "expected": "Lượt khách dự kiến",
+                                    "low": "Mức thấp", "high": "Mức cao"})
+        st.dataframe(view.round(1), hide_index=True, width="stretch")
+        st.caption("Lượt khách mua theo ngày khác với khách hàng duy nhất của cả tháng "
+                   "và không bao gồm người đến siêu thị nhưng không phát sinh giao dịch.")
+
+
 def customers(filters):
     st.subheader("Phân khúc khách hàng và hành vi mua sắm")
     orders = customer_orders(filters)
@@ -416,6 +486,7 @@ def customers(filters):
                "mẫu số là những khách đã mua trước kỳ. Đây chỉ là đại diện churn, không xác nhận "
                "khách thực sự rời bỏ. Tất cả kết quả chịu giới hạn lịch sử bắt đầu từ 2011.")
     st.metric("Tỷ lệ mua lặp trong kỳ (từ 2 đơn trở lên)", number(kpis["repeat_pct"], 2) + "%")
+    daily_customer_forecast(orders, window_start, window_end)
     segments = segment_breakdown(orders, window_start, window_end)
     if not segments.empty:
         segments["segment_vi"] = segments.segment.map({
@@ -816,6 +887,7 @@ def forecasts():
         st.write("WAPE càng thấp càng tốt; không phải độ chính xác phân loại. Chỉ có bốn năm lịch sử, "
                  "chưa ước lượng khoảng dự báo. Dự báo doanh thu hỗ trợ lập mục tiêu, chưa xác định được lượng nhập hàng.")
         st.caption("Thời điểm tạo kết quả: " + manifest["created_at"])
+
 
 
 

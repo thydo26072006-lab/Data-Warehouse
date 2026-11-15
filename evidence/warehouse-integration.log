@@ -1,0 +1,27 @@
+Verified every source row and all 26 columns; 6 foreign keys are valid.
+Table counts: {'dim_date': 1468, 'dim_customer': 4873, 'dim_product': 10768, 'dim_geography': 3819, 'dim_order': 25754, 'fact_sales': 51290}
+Loaded dimensions first, then fact_sales. Existing row_id values are updated.
+Verified every source row and all 26 columns; 6 foreign keys are valid.
+Table counts: {'dim_date': 1468, 'dim_customer': 4873, 'dim_product': 10768, 'dim_geography': 3819, 'dim_order': 25754, 'fact_sales': 51290}
+Verified every source row and all 26 columns; 6 foreign keys are valid.
+Table counts: {'dim_date': 1468, 'dim_customer': 4873, 'dim_product': 10768, 'dim_geography': 3819, 'dim_order': 25754, 'fact_sales': 51290}
+01_overview: 1 rows
+02_monthly_growth: 48 rows
+03_time_rollup: 69 rows
+04_product_drilldown: 21 rows
+05_geography: 152 rows
+06_customer_segments: 3 rows
+07_top_customers: 20 rows
+08_order_shipping: 12 rows
+09_market_category_cube: 32 rows
+10_slice_dice: 32 rows
+11_loss_making_products: 3031 rows
+12_discount_analysis: 4 rows
+OLAP totals, subtotal flags and growth boundaries verified.
+PASS: Rerun load preserves counts, totals and all 26 source columns
+PASS: Duplicate row_id rejected
+PASS: Invalid composite product FK rejected
+PASS: Non-positive quantity rejected
+PASS: Zero-sales margin must remain NULL
+PASS: Failed fact load rolls back dimension changes as well
+PASS: All 12 OLAP queries and aggregate checks pass

@@ -1,0 +1,22 @@
+2026-11-15 21:20:10.919 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+test_empty_cohort_is_safe (__main__.CustomerWindowChecks.test_empty_cohort_is_safe) ... ok
+test_explicit_year_is_applied_before_window (__main__.CustomerWindowChecks.test_explicit_year_is_applied_before_window) ... ok
+test_guard_and_segment_routing_preserved (__main__.CustomerWindowChecks.test_guard_and_segment_routing_preserved) ... ok
+test_sidebar_clips_window (__main__.CustomerWindowChecks.test_sidebar_clips_window) ... ok
+test_six_months_changes_cohort (__main__.CustomerWindowChecks.test_six_months_changes_cohort) ... ok
+test_three_months_retains_earlier_history (__main__.CustomerWindowChecks.test_three_months_retains_earlier_history) ... ok
+test_twelve_months_and_default_match (__main__.CustomerWindowChecks.test_twelve_months_and_default_match) ... FAIL
+test_unsupported_or_ambiguous_period_does_not_query (__main__.CustomerWindowChecks.test_unsupported_or_ambiguous_period_does_not_query) ... ok
+
+======================================================================
+FAIL: test_twelve_months_and_default_match (__main__.CustomerWindowChecks.test_twelve_months_and_default_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\antigravity-lab\Data-Warehouse-DNNB\src\dashboard\test_chatbot_windows.py", line 46, in test_twelve_months_and_default_match
+    self.assertIn('**1** (**33,33%**)', explicit)
+AssertionError: '**1** (**33,33%**)' not found in 'Cửa sổ **12 tháng**, giới hạn theo bộ lọc đang chọn; giai đoạn thực tế **01/01/2014–31/12/2014**: **3** khách hàng hoạt động, **2** khách hàng mới và **1** khách hàng quay lại (**33,33%** khách hoạt động). Khách mua lặp trong kỳ: **1** (**33,33%** khách hoạt động). Khách không hoạt động trong giai đoạn thực tế: **1/2** (**50,00%**). Đây chỉ là chỉ số đại diện, không xác nhận khách thực sự rời bỏ.'
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.128s
+
+FAILED (failures=1)

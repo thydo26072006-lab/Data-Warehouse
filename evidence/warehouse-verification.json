@@ -1,0 +1,226 @@
+{
+  "verified_at": "2026-11-15T21:13:09+07:00",
+  "postgresql": "PostgreSQL 17.11 on x86_64-windows, compiled by msvc-19.44.35228, 64-bit",
+  "source_file": "data/processed/superstore_processed.csv",
+  "source_sha256": "78ff65d56735035cef58a114bfd0ef48353dfc1657111f190e38666c8429930a",
+  "source_rows": 51290,
+  "warehouse_rows": 51290,
+  "all_26_columns_reconciled": true,
+  "foreign_keys_validated": 6,
+  "table_counts": {
+    "dim_date": 1468,
+    "dim_customer": 4873,
+    "dim_product": 10768,
+    "dim_geography": 3819,
+    "dim_order": 25754,
+    "fact_sales": 51290
+  },
+  "overview": {
+    "sales_lines": "51290",
+    "order_groups": "25754",
+    "loss_lines": "12544",
+    "zero_sales_lines": "1",
+    "null_margin_lines": "1",
+    "sales": "12642905.00000",
+    "profit": "1467457.29128",
+    "quantity": "178312",
+    "shipping_cost": "1352815.70340"
+  },
+  "measure_reconciliation": [
+    {
+      "measure": "sales",
+      "csv_total": "12642905.0",
+      "warehouse_total": "12642905.00000",
+      "difference": "0.00000"
+    },
+    {
+      "measure": "profit",
+      "csv_total": "1467457.29128",
+      "warehouse_total": "1467457.29128",
+      "difference": "0.00000"
+    },
+    {
+      "measure": "quantity",
+      "csv_total": "178312",
+      "warehouse_total": "178312",
+      "difference": "0"
+    },
+    {
+      "measure": "shipping_cost",
+      "csv_total": "1352815.70340",
+      "warehouse_total": "1352815.70340",
+      "difference": "0.00000"
+    }
+  ],
+  "constraints": [
+    {
+      "conname": "dim_customer_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (customer_id)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_calendar_month_check",
+      "contype": "c",
+      "definition": "CHECK (((calendar_month >= 1) AND (calendar_month <= 12)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_calendar_quarter_check",
+      "contype": "c",
+      "definition": "CHECK (((calendar_quarter >= 1) AND (calendar_quarter <= 4)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_check",
+      "contype": "c",
+      "definition": "CHECK (((calendar_year)::numeric = EXTRACT(year FROM full_date)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_check1",
+      "contype": "c",
+      "definition": "CHECK (((calendar_quarter)::numeric = EXTRACT(quarter FROM full_date)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_check2",
+      "contype": "c",
+      "definition": "CHECK (((calendar_month)::numeric = EXTRACT(month FROM full_date)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_check3",
+      "contype": "c",
+      "definition": "CHECK (((iso_year)::numeric = EXTRACT(isoyear FROM full_date)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_check4",
+      "contype": "c",
+      "definition": "CHECK (((iso_week)::numeric = EXTRACT(week FROM full_date)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_iso_week_check",
+      "contype": "c",
+      "definition": "CHECK (((iso_week >= 1) AND (iso_week <= 53)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_date_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (full_date)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_geography_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (country, state, city, region, market)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_order_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (order_id, order_date, customer_id)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "dim_product_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (product_id, product_name)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_check",
+      "contype": "c",
+      "definition": "CHECK ((ship_date >= order_date))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_check1",
+      "contype": "c",
+      "definition": "CHECK ((((sales = (0)::numeric) AND (profit_margin IS NULL)) OR ((sales > (0)::numeric) AND (profit_margin IS NOT NULL) AND (abs((profit_margin - round((profit / NULLIF(sales, (0)::numeric)), 8))) <= 0.00000001))))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_discount_check",
+      "contype": "c",
+      "definition": "CHECK (((discount >= (0)::numeric) AND (discount <= (1)::numeric)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (row_id)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_quantity_check",
+      "contype": "c",
+      "definition": "CHECK ((quantity > 0))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_row_id_check",
+      "contype": "c",
+      "definition": "CHECK ((row_id > 0))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_sales_check",
+      "contype": "c",
+      "definition": "CHECK ((sales >= (0)::numeric))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_shipping_cost_check",
+      "contype": "c",
+      "definition": "CHECK ((shipping_cost >= (0)::numeric))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fact_sales_weeknum_check",
+      "contype": "c",
+      "definition": "CHECK (((weeknum >= 1) AND (weeknum <= 53)))",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fk_customer",
+      "contype": "f",
+      "definition": "FOREIGN KEY (customer_id) REFERENCES dw.dim_customer(customer_id)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fk_geography",
+      "contype": "f",
+      "definition": "FOREIGN KEY (country, state, city, region, market) REFERENCES dw.dim_geography(country, state, city, region, market)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fk_order",
+      "contype": "f",
+      "definition": "FOREIGN KEY (order_id, order_date, customer_id) REFERENCES dw.dim_order(order_id, order_date, customer_id)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fk_order_date",
+      "contype": "f",
+      "definition": "FOREIGN KEY (order_date) REFERENCES dw.dim_date(full_date)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fk_product",
+      "contype": "f",
+      "definition": "FOREIGN KEY (product_id, product_name) REFERENCES dw.dim_product(product_id, product_name)",
+      "convalidated": "t"
+    },
+    {
+      "conname": "fk_ship_date",
+      "contype": "f",
+      "definition": "FOREIGN KEY (ship_date) REFERENCES dw.dim_date(full_date)",
+      "convalidated": "t"
+    }
+  ],
+  "status": "passed"
+}

@@ -174,6 +174,11 @@ def answer_question(question, base_filters):
                 "Tỷ lệ dòng lỗ = số dòng profit < 0 / tổng số dòng × 100%; "
                 "đây là quan sát, không chứng minh chiết khấu gây lỗ."), columns
 
+    # Additive compatibility path: preserve the original branch below unchanged.
+    if customers and contains("quay lai", "mua lai", "tro lai", "moi", "roi bo",
+                              "khong hoat dong", "hoat dong", "mua lap"):
+        return _customer_window_answer(q, filters)
+
     if customers and contains("quay lai", "mua lai", "tro lai", "moi", "roi bo", "khong hoat dong"):
         orders = customer_orders(filters)
         k = customer_kpis(orders, filters[0], filters[1], 12)
@@ -241,3 +246,30 @@ def answer_question(question, base_filters):
                 "Đơn hàng được xác định theo mã đơn + ngày đặt + mã khách hàng."), None
 
     return _unsupported(), None
+
+
+def _customer_window_answer(question, filters):
+    """Use the same bounded window and pre-period history as Gemini insights."""
+    from insights import customer_window
+
+    mentioned = re.findall(r"(?<![\w.,])([+-]?\d+(?:[.,]\d+)?)\s*(?:thang|months?)\b", question)
+    if mentioned and (any(value not in ("3", "6", "12") for value in mentioned)
+                      or len(set(mentioned)) > 1):
+        return "Vui lòng chọn một cửa sổ khách hàng: 3, 6 hoặc 12 tháng.", None
+    months = int(mentioned[0]) if mentioned else 12
+    start, end = customer_window(filters[0], filters[1], months)
+    # Fetch history before the selected window to distinguish new/returning.
+    k = customer_kpis(customer_orders(filters), start, end, months)
+    span = f"{start.strftime('%d/%m/%Y')}–{(pd.Timestamp(end) - pd.Timedelta(days=1)).strftime('%d/%m/%Y')}"
+    return (f"Cửa sổ **{months} tháng**, giới hạn theo bộ lọc đang chọn; "
+            f"giai đoạn thực tế **{span}**: "
+            f"**{fmt(k['active'], 0)}** khách hàng hoạt động, "
+            f"**{fmt(k['new'], 0)}** khách hàng mới và "
+            f"**{fmt(k['returning'], 0)}** khách hàng quay lại "
+            f"(**{fmt(k['returning_pct'])}%** khách hoạt động). "
+            f"Khách mua lặp trong kỳ: **{fmt(k['repeat'], 0)}** "
+            f"(**{fmt(k['repeat_pct'])}%** khách hoạt động). "
+            f"Khách không hoạt động trong giai đoạn thực tế: "
+            f"**{fmt(k['inactive'], 0)}/{fmt(k['previous'], 0)}** "
+            f"(**{fmt(k['inactive_pct'])}%**). Đây chỉ là chỉ số đại diện, "
+            "không xác nhận khách thực sự rời bỏ."), None
