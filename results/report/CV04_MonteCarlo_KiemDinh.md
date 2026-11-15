@@ -37,6 +37,8 @@ Tổng dự kiến 6389.2775 lượt, trung bình 532.4398 lượt/tháng; thán
 - `results/monte_carlo/evaluation.json`: cấu hình, giao thức và chỉ số.
 - `results/monte_carlo/backtest_monthly.csv`: actual/predicted/baseline/dải của 24 tháng.
 - `results/monte_carlo/forecast_2015_monthly.csv`: kết quả 12 tháng.
+> **Đính chính tên log trên DNNB (15/11/2026):** Tệp thực tế là [monte-carlo-tests-cv04.log](../../evidence/monte-carlo-tests-cv04.log), ghi nhận 9/9 unit test đạt. Tên `monte-carlo-tests-final.log` ở dòng dưới là tên cũ, được giữ lại theo yêu cầu chỉ bổ sung; dùng liên kết vừa nêu để xem bằng chứng. Log và manifest CV04 không thay đổi.
+
 - `evidence/monte-carlo-tests-final.log`: log unit test sau sửa.
 
 ```powershell
