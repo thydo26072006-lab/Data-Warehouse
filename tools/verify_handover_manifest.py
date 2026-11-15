@@ -4,11 +4,23 @@ import hashlib
 import json
 import subprocess
 import sys
+from datetime import datetime
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = "evidence/handover-manifest.json"
 if len(sys.argv) > 1:
     MANIFEST = sys.argv[1]
+else:
+    candidates = []
+    for path in (ROOT / "evidence").glob("handover*-manifest.json"):
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+        if metadata.get("kind") == "handover_file_inventory":
+            created = datetime.fromisoformat(metadata["created_at"])
+            if created.tzinfo is None:
+                raise ValueError("Manifest created_at requires a timezone: " + str(path))
+            candidates.append((created.timestamp(), path.relative_to(ROOT).as_posix()))
+    if candidates:
+        MANIFEST = max(candidates)[1]
 
 
 def git(*args):
@@ -19,6 +31,7 @@ def git(*args):
 
 def verify():
     manifest = json.loads((ROOT / MANIFEST).read_text(encoding="utf-8"))
+    print("Manifest: " + MANIFEST)
     entries = manifest["files"]
     paths = [item["path"] for item in entries]
     errors = []

@@ -1,5 +1,15 @@
 # Bàn giao sau khi cập nhật PDF slide
 
+> **Cập nhật lệnh kiểm tra manifest:** Chạy `python tools/verify_handover_manifest.py`
+> để tự chọn manifest bàn giao mới nhất theo `created_at` có múi giờ trong
+> `evidence/handover*-manifest.json` (loại `handover_file_inventory`). Script
+> in đường dẫn manifest đã chọn. Bản cập nhật hiện tại là
+> [handover-default-manifest.json](handover-default-manifest.json).
+> Có thể chỉ định tệp bằng `python tools/verify_handover_manifest.py evidence/handover-default-manifest.json`.
+> Các lệnh dẫn manifest cũ bên dưới được giữ làm lịch sử; kiểm tra chúng trên
+> repo hiện tại có thể báo khác hash hoặc danh sách tệp vì phiên bản đã thay đổi.
+
+
 Manifest mới nhất cho lần cập nhật PDF slide là
 [handover-slides-manifest.json](handover-slides-manifest.json).
 Manifest bàn giao trước đó được giữ nguyên làm lịch sử.

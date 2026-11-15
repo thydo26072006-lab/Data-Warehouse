@@ -1,5 +1,15 @@
 # Manifest bàn giao nhánh DNNB
 
+> **Cập nhật lệnh kiểm tra manifest:** Chạy `python tools/verify_handover_manifest.py`
+> để tự chọn manifest bàn giao mới nhất theo `created_at` có múi giờ trong
+> `evidence/handover*-manifest.json` (loại `handover_file_inventory`). Script
+> in đường dẫn manifest đã chọn. Bản cập nhật hiện tại là
+> [handover-default-manifest.json](handover-default-manifest.json).
+> Có thể chỉ định tệp bằng `python tools/verify_handover_manifest.py evidence/handover-default-manifest.json`.
+> Các lệnh dẫn manifest cũ bên dưới được giữ làm lịch sử; kiểm tra chúng trên
+> repo hiện tại có thể báo khác hash hoặc danh sách tệp vì phiên bản đã thay đổi.
+
+
 [handover-manifest.json](handover-manifest.json) kiểm kê phiên bản bàn giao
 sau các lần bổ sung tài liệu và chỉnh PowerPoint. Trường `base_commit` là
 commit trước khi thêm bộ manifest này, không phải commit đã chạy toàn bộ test.
