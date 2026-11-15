@@ -4,6 +4,8 @@
 
 Nhánh BTL đã đồng bộ bộ tệp theo Mục 5.1 từ `nop-bai/co4031-hk261`. Xem [hướng dẫn chạy trên Windows, Streamlit Cloud và ghi chú phát triển](docs/BTL_KHODL_HUONG_DAN.md).
 
+> **Đính chính vị trí kiểm định Monte Carlo (15/11/2026):** Trong [báo cáo PDF hiện tại](KDL_Main.pdf), nội dung CV04 đã được tích hợp vào **mục 4.6.3, Bảng 20 — Kết quả kiểm định ngoài mẫu của mô phỏng Monte Carlo**, cùng phần đánh giá và hạn chế; không nằm trong phụ lục cuối PDF. Ghi chú này thay thế cách chỉ dẫn vị trí “phụ lục CV04 ở cuối PDF” trong bảng bên dưới và “dùng kết quả CV04 ở cuối PDF” trong phần kiểm tra độc lập. Các dòng cũ được giữ nguyên theo yêu cầu chỉ bổ sung. Kết quả và bằng chứng tương ứng vẫn ở [results/monte_carlo/](results/monte_carlo/) và [evidence/](evidence/).
+
 | Thành phần | Vị trí |
 | --- | --- |
 | Báo cáo PDF | [KDL_Main.pdf](KDL_Main.pdf) — báo cáo TeXPage hiện có và phụ lục CV04 ở cuối PDF |
