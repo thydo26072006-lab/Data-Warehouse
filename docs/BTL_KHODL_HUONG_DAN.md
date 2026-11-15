@@ -1,5 +1,34 @@
 # Hướng dẫn chạy và ghi chú phát triển CO4031
 
+## Bổ sung hướng dẫn hiện hành — nhánh DNNB (15/11/2026)
+
+**Nhánh sử dụng hiện tại là `DNNB`.** Các chỉ dẫn `import/btl-khodl` trong
+phần Cloud và cập nhật bản tải về bên dưới là thông tin lịch sử; dùng hướng
+dẫn tại mục này thay cho các chỉ dẫn nhánh đó. Nội dung cũ được giữ nguyên
+theo yêu cầu chỉ bổ sung.
+
+- Cấu hình app Cloud của dự án: repository `thydo26072006-lab/Data-Warehouse`,
+  branch `DNNB`, file chạy `src/dashboard/app.py`.
+- Với repo đã clone, lưu hoặc commit công việc đang làm, rồi chạy từ gốc repo:
+
+```powershell
+git fetch origin
+git switch DNNB
+git pull --ff-only origin DNNB
+```
+
+Nếu bản clone chỉ lấy một nhánh khác và chưa có `origin/DNNB`, chạy
+`git fetch origin DNNB:refs/remotes/origin/DNNB` trước khi switch.
+Nếu tải ZIP, lấy toàn bộ nhánh `DNNB` vào thư mục mới để giữ đủ các tệp phụ thuộc.
+
+**Vị trí terminal:** các lệnh cài đặt/chạy trong tài liệu này được thực hiện
+tại gốc repo (có `src/`, `data/`, `README.md`), không phải thư mục `docs/`
+đang chứa tài liệu. Hướng dẫn chi tiết về venv, nạp kho lần đầu và launcher
+nằm tại [src/dashboard/README.md](../src/dashboard/README.md).
+`run_dashboard.ps1` cần venv ở `.runtime/forecast-venv` và kho đã được nạp;
+script không tự cài dependency hay nạp dữ liệu.
+
+
 Bộ tệp hiện tại và kết quả kiểm định Monte Carlo xem ở [README của branch](../README.md). Các mục cập nhật bên dưới ghi lại quá trình phát triển, không phải trạng thái nghiệm thu hiện tại.
 
 ## Streamlit Community Cloud
