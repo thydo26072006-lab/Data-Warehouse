@@ -1,0 +1,65 @@
+{
+  "python": "3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]",
+  "postgresql": "PostgreSQL 17.11 on x86_64-windows, compiled by msvc-19.44.35228, 64-bit",
+  "filters": {
+    "start": "2011-01-01",
+    "end_exclusive": "2015-01-01",
+    "markets": [
+      "APAC",
+      "Africa",
+      "Canada",
+      "EMEA",
+      "EU",
+      "LATAM",
+      "US"
+    ],
+    "categories": [
+      "Furniture",
+      "Office Supplies",
+      "Technology"
+    ]
+  },
+  "cohorts": [
+    {
+      "scope": "all",
+      "rows": 51290,
+      "countries": 147
+    },
+    {
+      "scope": "profitable",
+      "rows": 43275,
+      "countries": 118
+    },
+    {
+      "scope": "non_profitable",
+      "rows": 8015,
+      "countries": 29
+    },
+    {
+      "scope": "discount_below_10",
+      "rows": 29620,
+      "countries": 118
+    },
+    {
+      "scope": "discount_above_10",
+      "rows": 17602,
+      "countries": 54
+    }
+  ],
+  "runs": [
+    {
+      "command": "python -B src/warehouse/warehouse.py verify",
+      "started_at": "2026-11-15T21:13:01.957740+07:00",
+      "finished_at": "2026-11-15T21:13:09.644899+07:00",
+      "exit_code": 0,
+      "log": "evidence/warehouse-verify.log"
+    },
+    {
+      "command": "python -B src/warehouse/check_pipeline.py ",
+      "started_at": "2026-11-15T21:13:09.664734+07:00",
+      "finished_at": "2026-11-15T21:13:58.235135+07:00",
+      "exit_code": 0,
+      "log": "evidence/warehouse-integration.log"
+    }
+  ]
+}

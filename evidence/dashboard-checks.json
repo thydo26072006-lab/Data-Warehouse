@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "tests_run": 21,
+  "failures": 0,
+  "errors": 0,
+  "coverage": [
+    "12 SQL outputs reconciled",
+    "filtered KPI and composite order count",
+    "5 pages and 12 explorer choices",
+    "3 forecast categories and total",
+    "UI filters and empty selection",
+    "stale forecasts hidden",
+    "connection failure handled",
+    "Linux CSV newlines accepted",
+    "changed CSV content rejected"
+  ]
+}
