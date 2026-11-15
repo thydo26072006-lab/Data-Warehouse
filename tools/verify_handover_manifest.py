@@ -7,6 +7,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = "evidence/handover-manifest.json"
+if len(sys.argv) > 1:
+    MANIFEST = sys.argv[1]
 
 
 def git(*args):
