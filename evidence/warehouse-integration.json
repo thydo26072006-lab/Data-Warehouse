@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "checks": [
+    "Rerun load preserves counts, totals and all 26 source columns",
+    "Duplicate row_id rejected",
+    "Invalid composite product FK rejected",
+    "Non-positive quantity rejected",
+    "Zero-sales margin must remain NULL",
+    "Failed fact load rolls back dimension changes as well",
+    "All 12 OLAP queries and aggregate checks pass"
+  ]
+}

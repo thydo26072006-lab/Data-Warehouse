@@ -1,0 +1,2 @@
+Verified every source row and all 26 columns; 6 foreign keys are valid.
+Table counts: {'dim_date': 1468, 'dim_customer': 4873, 'dim_product': 10768, 'dim_geography': 3819, 'dim_order': 25754, 'fact_sales': 51290}
